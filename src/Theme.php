@@ -431,7 +431,7 @@ class Theme implements ThemeContract
      */
     public function breadcrumb(): Breadcrumb
     {
-        return $this->breadcrumb;
+         return $this->breadcrumb;
     }
 
     /**
@@ -1006,7 +1006,7 @@ class Theme implements ThemeContract
         }
 
         $content->withHeaders([
-            'CMS-Version'       => '5.24.1',
+            'CMS-Version'       => '3.1.1',
             'Authorization-At'  => setting('membership_authorization_at'),
             'Activated-License' => !empty(setting('licensed_to')) ? 'Yes' : 'No',
         ]);
