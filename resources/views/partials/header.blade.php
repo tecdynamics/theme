@@ -9,3 +9,4 @@
 {!! Theme::asset()->container('header')->scripts() !!}
 
 {!! apply_filters(THEME_FRONT_HEADER, null) !!}
+

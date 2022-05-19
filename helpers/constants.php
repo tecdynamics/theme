@@ -27,3 +27,7 @@ if (!defined('THEME_OPTIONS_ACTION_META_BOXES')) {
 if (!defined('RENDERING_THEME_OPTIONS_PAGE')) {
     define('RENDERING_THEME_OPTIONS_PAGE', 'rendering-theme-options-page');
 }
+
+if (!defined('MAIN_SEARCH_INPUT')) {
+    define('MAIN_SEARCH_INPUT', 'main_search_input');
+}
