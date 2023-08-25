@@ -31,3 +31,10 @@ if (!defined('RENDERING_THEME_OPTIONS_PAGE')) {
 if (!defined('MAIN_SEARCH_INPUT')) {
     define('MAIN_SEARCH_INPUT', 'main_search_input');
 }
+
+if (!defined('BEFORE_CART_TOTAL')) {
+    define('BEFORE_CART_TOTAL', 'before-shopping-cart-total');
+}
+if (!defined('AFTER_CART_TOTAL')) {
+    define('AFTER_CART_TOTAL', 'after-shopping-cart-total');
+}

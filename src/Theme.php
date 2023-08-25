@@ -2,7 +2,11 @@
 
 namespace Tec\Theme;
 
+use Cart;
+use Tec\Page\Models\Page;
+use Tec\Shortcode\View\View;
 use Tec\Theme\Contracts\Theme as ThemeContract;
+use Tec\Theme\Events\RenderingSingleEvent;
 use Tec\Theme\Exceptions\UnknownLayoutFileException;
 use Tec\Theme\Exceptions\UnknownPartialFileException;
 use Tec\Theme\Exceptions\UnknownThemeException;
@@ -152,7 +156,6 @@ class Theme implements ThemeContract
         $this->view = $view;
         $this->asset = $asset;
         $this->files = $files;
-
         $this->breadcrumb = $breadcrumb;
 
         self::uses($this->getThemeName())->layout(setting('layout', 'default'));
@@ -614,7 +617,8 @@ class Theme implements ThemeContract
         $path = $partialDir . '.' . $view;
 
         if (!$this->view->exists($path)) {
-            throw new UnknownPartialFileException('Partial view [' . $view . '] not found.');
+
+            throw new UnknownPartialFileException('Partial view [' . $path . '] not found.');
         }
 
         $partial = $this->view->make($path, $args)->render();
@@ -756,7 +760,8 @@ class Theme implements ThemeContract
      */
     public function content()
     {
-        return $this->regions['content'];
+
+        return $this->regions['content']??'';
     }
 
     /**
@@ -836,7 +841,6 @@ class Theme implements ThemeContract
 
         // Add namespace to find in a theme path.
         $path = $this->getThemeNamespace($viewDir . '.' . $view);
-
         if ($this->view->exists($path)) {
             return $this->setUpContent($path, $args);
         }
@@ -889,12 +893,13 @@ class Theme implements ThemeContract
         if (app()->isLocal()) {
             $path = str_replace($this->getThemeNamespace(), $this->getThemeName(), $path);
             $file = str_replace('::', '/', str_replace('.', '/', $path));
-            dd(debug_backtrace());
+//            dd(debug_backtrace());
             dd('This theme has not supported this view, please create file "' . theme_path($file) . '.blade.php" to render this page!');
         }
 
         abort(404);
     }
+
 
     /**
      * Load subview from direct path.
@@ -1005,11 +1010,11 @@ class Theme implements ThemeContract
             $content->withCookie($this->cookie);
         }
 
-        $content->withHeaders([
-            'CMS-Version'       => '3.1.1',
-            'Authorization-At'  => setting('membership_authorization_at'),
-            'Activated-License' => !empty(setting('licensed_to')) ? 'Yes' : 'No',
-        ]);
+//        $content->withHeaders([
+//            'CMS-Version'       => '4.1.1',
+//            'Authorization-At'  => setting('membership_authorization_at'),
+//            'Activated-License' => !empty(setting('licensed_to')) ? 'Yes' : 'No',
+//        ]);
 
         return $content;
     }

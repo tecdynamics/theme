@@ -32,8 +32,10 @@ class PublicController extends Controller
 
         $slug = SlugHelper::getSlug($key, '');
 
+
         if (!$slug) {
-            abort(404);
+            return abort(404);
+
         }
 
         if (defined('PAGE_MODULE_SCREEN_NAME')) {
@@ -53,8 +55,7 @@ class PublicController extends Controller
         if (!empty($result) && is_array($result)) {
             return Theme::scope($result['view'], $result['data'], Arr::get($result, 'default_view'))->render();
         }
-
-        abort(404);
+        return    abort(404);
     }
 
     /**

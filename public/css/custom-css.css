@@ -4,7 +4,6 @@
   height: 20px;
   -webkit-user-select: none;
      -moz-user-select: none;
-      -ms-user-select: none;
           user-select: none;
   cursor: row-resize;
   border-top: 1px solid #dddddd;

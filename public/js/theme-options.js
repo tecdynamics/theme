@@ -7,22 +7,17 @@ $(document).ready(function () {
   if ($(document).find('.colorpicker-input').length > 0) {
     $(document).find('.colorpicker-input').colorpicker();
   }
-
   if ($(document).find('.iconpicker-input').length > 0) {
     $(document).find('.iconpicker-input').iconpicker({
       selected: true,
       hideOnSelect: true
     });
   }
-
   $(document).ready(function () {
     $(document).on('click', '.button-save-theme-options', function (event) {
       event.preventDefault();
-
       var _self = $(event.currentTarget);
-
       _self.addClass('button-loading');
-
       if (typeof tinymce != 'undefined') {
         for (var instance in tinymce.editors) {
           if (tinymce.editors[instance].getContent) {
@@ -30,16 +25,13 @@ $(document).ready(function () {
           }
         }
       }
-
       var $form = _self.closest('form');
-
       $.ajax({
         url: $form.prop('action'),
         type: 'POST',
         data: $form.serialize(),
         success: function success(data) {
           _self.removeClass('button-loading');
-
           if (data.error) {
             Tec.showError(data.message);
           } else {
@@ -49,7 +41,6 @@ $(document).ready(function () {
         },
         error: function error(data) {
           _self.removeClass('button-loading');
-
           Tec.handleError(data);
         }
       });

@@ -21,25 +21,31 @@ class Breadcrumb
      * @param string $url
      * @return Breadcrumb
      */
-    public function add(string $label, ?string $url = ''): self
+    public function add(string $label, ?string $url = '', ?string $slug = ''): self
     {
         if (is_array($label)) {
             if (count($label) > 0) {
                 foreach ($label as $crumb) {
+                    $slg = explode('\/', $crumb['url']);
+                    $slg = end($slg);
                     $defaults = [
                         'label' => '',
                         'url'   => '',
+                        'slug' => $slg
                     ];
                     $crumb = array_merge($defaults, $crumb);
-                    $this->add($crumb['label'], $crumb['url']);
+                    $this->add($crumb['label'], $crumb['url'],$slg);
                 }
             }
         } else {
             $label = trim(strip_tags($label, '<i><b><strong>'));
-            if (!preg_match('|^http(s)?|', $url)) {
+              if (!preg_match('|^http(s)?|', $url)) {
                 $url = URL::to($url);
             }
-            $this->crumbs[] = ['label' => $label, 'url' => $url];
+                $slg = explode('/', $url);
+                $slg = end($slg);
+
+            $this->crumbs[] = ['label' => $label, 'url' => $url,'slug'=> $slg];
         }
 
         return $this;

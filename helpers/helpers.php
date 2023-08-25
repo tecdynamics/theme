@@ -3,6 +3,8 @@
 use Tec\Theme\Facades\AdminBarFacade;
 use Tec\Theme\Facades\ThemeOptionFacade;
 
+
+
 if (!function_exists('sanitize_html_class')) {
     /**
      * @param string $class
@@ -114,5 +116,11 @@ if (!function_exists('admin_bar')) {
     function admin_bar()
     {
         return AdminBarFacade::getFacadeRoot();
+    }
+}
+if(!function_exists('wp_enqueue_style')){
+    function wp_enqueue_style($name,$source,$usePath=false,$options=[])
+    {
+        Theme::asset()->usePath($usePath)->add($name, $source, $options);
     }
 }
