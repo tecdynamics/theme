@@ -43,8 +43,12 @@ class PublicController extends Controller
                 return redirect()->route('public.index');
             }
         }
-
         $result = apply_filters(BASE_FILTER_PUBLIC_SINGLE_DATA, $slug);
+
+
+        if(isset($result['data']['page']) && (int)$result['data']['page']->is_restricted>0 && \auth('customer')->check()===false) {
+            return abort(404);
+        }
 
         if (isset($result['slug']) && $result['slug'] !== $key) {
             return redirect()->route('public.single', $result['slug']);
