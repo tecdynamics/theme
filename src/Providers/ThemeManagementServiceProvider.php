@@ -45,7 +45,7 @@ class ThemeManagementServiceProvider extends ServiceProvider
             //load child
             $childPath = $this->app->basePath('themes/').$theme;
             if(file_exists($childPath. '/functions/functions.php'))
-                Helper::autoload($childPath. '/functions/');
+            Helper::autoload($childPath. '/functions/');
         }
     }
 

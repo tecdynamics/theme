@@ -47,7 +47,7 @@ class PublicController extends Controller
 
 
         if(isset($result['data']['page']) && (int)$result['data']['page']->is_restricted>0 && \auth('customer')->check()===false) {
-            return abort(404);
+               return abort(404);
         }
 
         if (isset($result['slug']) && $result['slug'] !== $key) {

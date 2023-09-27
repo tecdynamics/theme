@@ -136,7 +136,7 @@ class HookServiceProvider extends ServiceProvider
             $iframe = null;
 
             if (Youtube::isYoutubeURL($url)) {
-                $iframe = Html::tag('iframe', '', [
+                $iframe = Html::element('iframe', '', [
                     'class'           => 'embed-responsive-item',
                     'allowfullscreen' => true,
                     'frameborder'     => 0,
@@ -149,7 +149,7 @@ class HookServiceProvider extends ServiceProvider
             if (Vimeo::isVimeoURL($url)) {
                 $videoId = Vimeo::getVimeoID($url);
                 if ($videoId) {
-                    $iframe = Html::tag('iframe', '', [
+                    $iframe = Html::element('iframe', '', [
                         'class'           => 'embed-responsive-item',
                         'height'          => 315,
                         'width'           => 420,
@@ -160,7 +160,7 @@ class HookServiceProvider extends ServiceProvider
             }
 
             if ($iframe) {
-                return Html::tag('div', $iframe, ['class' => 'embed-responsive embed-responsive-16by9 mb30'])
+                return Html::element('div', $iframe, ['class' => 'embed-responsive embed-responsive-16by9 mb30'])
                     ->toHtml();
             }
 

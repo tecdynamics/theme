@@ -434,7 +434,7 @@ class Theme implements ThemeContract
      */
     public function breadcrumb(): Breadcrumb
     {
-        return $this->breadcrumb;
+         return $this->breadcrumb;
     }
 
     /**

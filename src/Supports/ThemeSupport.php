@@ -54,7 +54,7 @@ class ThemeSupport
         }
 
         if (!Str::contains($js, '<script') || !Str::contains($js, '</script>')) {
-            $js = Html::tag('script', $js);
+            $js = Html::element('script', $js);
         }
 
         return $js;
