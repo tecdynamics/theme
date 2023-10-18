@@ -32,14 +32,23 @@ class ThemeSupport
     public static function registerGoogleMapsShortcode($viewPath = null)
     {
         add_shortcode('google-map', __('Google map'), __('Add Google map iframe'), function ($shortcode) use ($viewPath) {
-            return view(($viewPath ?: 'packages/theme::shortcodes') . '.google-map', ['address' => $shortcode->content])
+            return view(($viewPath ?: 'packages/theme::shortcodes') . '.google-map', [
+                'address' => $shortcode->content,
+                'height'=> $shortcode->height??'400',
+                'class'=> $shortcode->class??false,
+                'style'=> $shortcode->style??false,
+            ])
                 ->render();
         });
 
         shortcode()->setAdminConfig('google-map', function ($attributes, $content) use ($viewPath) {
-            return view(($viewPath ?: 'packages/theme::shortcodes') . '.google-map-admin-config', compact('attributes', 'content'))->render();
+            $class=$attributes['class']??'';
+            $height=$attributes['height']??'';
+            $style=$attributes['style']??'';
+            return view(($viewPath ?: 'packages/theme::shortcodes') . '.google-map-admin-config', compact('attributes','style','height','class', 'content'))->render();
         });
     }
+
 
     /**
      * @param string $location
