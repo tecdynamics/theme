@@ -837,10 +837,11 @@ class Theme implements ThemeContract
      */
     public function scope($view, $args = [], $default = null)
     {
-        $viewDir = $this->getConfig('containerDir.view');
 
+        $viewDir = $this->getConfig('containerDir.view');
         // Add namespace to find in a theme path.
         $path = $this->getThemeNamespace($viewDir . '.' . $view);
+
         if ($this->view->exists($path)) {
             return $this->setUpContent($path, $args);
         }
@@ -893,7 +894,7 @@ class Theme implements ThemeContract
         if (app()->isLocal()) {
             $path = str_replace($this->getThemeNamespace(), $this->getThemeName(), $path);
             $file = str_replace('::', '/', str_replace('.', '/', $path));
-//            dd(debug_backtrace());
+
             dd('This theme has not supported this view, please create file "' . theme_path($file) . '.blade.php" to render this page!');
         }
 
