@@ -7,7 +7,13 @@
             "Tec\\Theme\\": "src"
         }
     },
-
+    "require": {
+        "tecdynamics/platform": "*",
+        "tecdynamics/sitemap": "*",
+        "tecdynamics/widget": "*",
+        "tecdynamics/slug": "*",
+        "tecdynamics/seo-helper": "*"
+    },
     "extra": {
         "laravel": {
             "providers": [

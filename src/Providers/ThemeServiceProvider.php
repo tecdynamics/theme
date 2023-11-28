@@ -2,6 +2,7 @@
 
 namespace Tec\Theme\Providers;
 
+use Html;
 use Tec\Base\Traits\LoadAndPublishDataTrait;
 use Tec\Theme\Commands\ThemeActivateCommand;
 use Tec\Theme\Commands\ThemeAssetsPublishCommand;
@@ -145,7 +146,14 @@ class ThemeServiceProvider extends ServiceProvider
                     }, 15);
                 }
             }
-
+//            add_filter(THEME_FRONT_HEADER, function ($html){
+//                $file =ThemeFacade::getStyleIntegrationPath();
+//                if ($this->app['files']->exists($file)) {
+//                    $html .= "\n" . Html::style(ThemeFacade::asset()->url('css/style.integration.css?v=' . filectime($file)));
+//                }
+//
+//                return $html;
+//            }, 15);
             $this->app->register(HookServiceProvider::class);
         });
 

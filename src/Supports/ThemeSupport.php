@@ -49,7 +49,6 @@ class ThemeSupport
         });
     }
 
-
     /**
      * @param string $location
      * @return string
@@ -63,7 +62,7 @@ class ThemeSupport
         }
 
         if (!Str::contains($js, '<script') || !Str::contains($js, '</script>')) {
-            $js = Html::element('script', $js);
+            $js = Html::tag('script', $js);
         }
 
         return $js;

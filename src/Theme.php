@@ -1076,7 +1076,7 @@ class Theme implements ThemeContract
     /**
      * @return string
      */
-    public function getStyleIntegrationPath()
+    public function getStyleIntegrationPath(): string
     {
         return public_path(Theme::path() . '/css/style.integration.css');
     }

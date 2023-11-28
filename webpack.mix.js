@@ -12,9 +12,9 @@ mix
     .js(source + '/resources/assets/js/theme-options.js', dist + '/js')
     .js(source + '/resources/assets/js/theme.js', dist + '/js')
 
-    .sass(source + '/resources/assets/sass/custom-css.scss', dist + '/css')
-    .sass(source + '/resources/assets/sass/theme-options.scss', dist + '/css')
-    .sass(source + '/resources/assets/sass/admin-bar.scss', dist + '/css')
+    // .sass(source + '/resources/assets/sass/custom-css.scss', dist + '/css')
+    // .sass(source + '/resources/assets/sass/theme-options.scss', dist + '/css')
+    // .sass(source + '/resources/assets/sass/admin-bar.scss', dist + '/css')
 
     .copyDirectory(dist + '/js', source + '/public/js')
     .copyDirectory(dist + '/css', source + '/public/css');

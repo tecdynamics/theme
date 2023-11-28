@@ -2,7 +2,9 @@
 
 namespace Tec\Theme\Providers;
 
+use BaseHelper;
 use Tec\Dashboard\Supports\DashboardWidgetInstance;
+use Tec\Page\Models\Page;
 use Tec\Theme\Supports\Vimeo;
 use Tec\Theme\Supports\Youtube;
 use Html;
@@ -14,6 +16,15 @@ class HookServiceProvider extends ServiceProvider
 {
     public function boot()
     {
+        add_filter(PAGE_FILTER_PAGE_NAME_IN_ADMIN_LIST, function (string $name, Page $page) {
+            if (BaseHelper::isHomepage($page->getKey())) {
+                $name .=  Html::tag('span', ' — ' . trans('packages/page::pages.front_page'), [
+                    'class' => 'additional-page-name',
+                ])->toHtml();
+            }
+
+            return $name;
+        }, 10, 2);
         add_filter(DASHBOARD_FILTER_ADMIN_LIST, [$this, 'addStatsWidgets'], 4, 2);
 
         add_filter(BASE_FILTER_AFTER_SETTING_CONTENT, [$this, 'addSetting'], 39);
@@ -136,7 +147,7 @@ class HookServiceProvider extends ServiceProvider
             $iframe = null;
 
             if (Youtube::isYoutubeURL($url)) {
-                $iframe = Html::element('iframe', '', [
+                $iframe = Html::tag('iframe', '', [
                     'class'           => 'embed-responsive-item',
                     'allowfullscreen' => true,
                     'frameborder'     => 0,
@@ -149,7 +160,7 @@ class HookServiceProvider extends ServiceProvider
             if (Vimeo::isVimeoURL($url)) {
                 $videoId = Vimeo::getVimeoID($url);
                 if ($videoId) {
-                    $iframe = Html::element('iframe', '', [
+                    $iframe = Html::tag('iframe', '', [
                         'class'           => 'embed-responsive-item',
                         'height'          => 315,
                         'width'           => 420,
@@ -160,7 +171,7 @@ class HookServiceProvider extends ServiceProvider
             }
 
             if ($iframe) {
-                return Html::element('div', $iframe, ['class' => 'embed-responsive embed-responsive-16by9 mb30'])
+                return Html::tag('div', $iframe, ['class' => 'embed-responsive embed-responsive-16by9 mb30'])
                     ->toHtml();
             }
 
