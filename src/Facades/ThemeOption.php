@@ -2,8 +2,9 @@
 
 namespace Tec\Theme\Facades;
 
-use Tec\Theme\ThemeOption;
 use Illuminate\Support\Facades\Facade;
+use Tec\Theme\ThemeOption as ThemeOptionService;
+
 /**
  * @method static array constructArgs()
  * @method static array constructSections()
@@ -36,7 +37,7 @@ use Illuminate\Support\Facades\Facade;
  *
  * @see \Tec\Theme\ThemeOption
  */
-class ThemeOptionFacade extends Facade
+class ThemeOption extends Facade
 {
     /**
      * Get the registered name of the component.
@@ -46,6 +47,6 @@ class ThemeOptionFacade extends Facade
      */
     protected static function getFacadeAccessor()
     {
-        return ThemeOption::class;
+        return ThemeOptionService::class;
     }
 }

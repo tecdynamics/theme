@@ -2,8 +2,9 @@
 
 namespace Tec\Theme\Facades;
 
-use Tec\Theme\Supports\SiteMapManager;
+use Tec\Theme\Supports\SiteMapManager as SiteMapManagerSupport;
 use Illuminate\Support\Facades\Facade;
+
 /**
  * @method static \Tec\Theme\Supports\SiteMapManager init(string|null $prefix = null, string $extension = 'xml')
  * @method static \Tec\Theme\Supports\SiteMapManager addSitemap(string $loc, string|null $lastModified = null)
@@ -18,13 +19,10 @@ use Illuminate\Support\Facades\Facade;
  *
  * @see \Tec\Theme\Supports\SiteMapManager
  */
-class SiteMapManagerFacade extends Facade
+class SiteMapManager extends Facade
 {
-    /**
-     * @return string
-     */
-    protected static function getFacadeAccessor()
+    protected static function getFacadeAccessor(): string
     {
-        return SiteMapManager::class;
+        return SiteMapManagerSupport::class;
     }
 }

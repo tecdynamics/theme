@@ -2,8 +2,8 @@
 
 namespace Tec\Theme\Facades;
 
-use Tec\Theme\Theme;
 use Illuminate\Support\Facades\Facade;
+use Tec\Theme\Theme as ThemeService;
 
 /**
  * @method static \Tec\Theme\Theme layout(string $layout)
@@ -58,7 +58,7 @@ use Illuminate\Support\Facades\Facade;
  *
  * @see \Tec\Theme\Theme
  */
-class ThemeFacade extends Facade
+class Theme extends Facade
 {
     /**
      * Get the registered name of the component.
@@ -68,6 +68,6 @@ class ThemeFacade extends Facade
      */
     protected static function getFacadeAccessor()
     {
-        return Theme::class;
+        return ThemeService::class;
     }
 }

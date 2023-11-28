@@ -2,8 +2,9 @@
 
 namespace Tec\Theme\Facades;
 
-use Tec\Theme\Manager;
 use Illuminate\Support\Facades\Facade;
+use Tec\Theme\Manager as ManagerService;
+
 /**
  * @method static void registerTheme(array|string $theme)
  * @method static array getAllThemes()
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Facade;
  *
  * @see \Tec\Theme\Manager
  */
-class ManagerFacade extends Facade
+class Manager extends Facade
 {
 
     /**
@@ -21,6 +22,6 @@ class ManagerFacade extends Facade
      */
     protected static function getFacadeAccessor()
     {
-        return Manager::class;
+        return ManagerService::class;
     }
 }
