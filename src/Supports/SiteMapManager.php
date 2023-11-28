@@ -2,61 +2,113 @@
 
 namespace Tec\Theme\Supports;
 
-use AdminBar;
-use BaseHelper;
+use Tec\Theme\Supports\AdminBar;
+use Tec\Base\Facades\BaseHelper;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Http\Response;
+use Tec\Slug\Facades\SlugHelper;
 use Tec\Sitemap\Sitemap;
 
 class SiteMapManager
 {
-    /**
-     * @var Sitemap
-     */
-    protected $siteMap;
+    protected array $keys = ['sitemap', 'pages'];
 
-    /**
-     * SiteMapManager constructor.
-     * @throws BindingResolutionException
-     */
-    public function __construct()
+    protected string $extension = 'xml';
+
+    protected string $defaultDate = '2023-06-01 00:00';
+
+    public function __construct(protected Sitemap $siteMap)
     {
-        // create new site map object
-        $this->siteMap = app()->make('sitemap');
-
-        // set cache (key (string), duration in minutes (Carbon|Datetime|int), turn on/off (boolean))
-        // by default cache is disabled
-        $this->siteMap->setCache('public.sitemap', config('core.base.general.cache_site_map'));
-
-        if (!BaseHelper::getHomepageId()) {
-            $this->siteMap->add(route('public.index'), '2021-10-20 10:00', '1.0', 'daily');
-        }
-
-        AdminBar::setIsDisplay(false);
     }
 
-    /**
-     * @param string $url
-     * @param string $date
-     * @param string $priority
-     * @param string $sequence
-     * @return $this
-     */
-    public function add($url, $date, $priority = '1.0', $sequence = 'daily')
+    public function init(string|null $prefix = null, string $extension = 'xml'): self
     {
-        if (!$this->siteMap->isCached()) {
-            $this->siteMap->add($url, $date, $priority, $sequence);
+        // create new site map object
+        $this->siteMap = app('sitemap');
+        // set cache (key (string), duration in minutes (Carbon|Datetime|int), turn on/off (boolean))
+        // by default cache is disabled
+        $this->siteMap->setCache('cache_site_map_key' . $prefix . $extension, setting('cache_time_site_map', 60), setting('enable_cache_site_map', true));
+
+        if ($prefix == 'pages' && ! BaseHelper::getHomepageId()) {
+            $this->add(route('public.index'), Carbon::now()->toDateTimeString());
+        }
+
+        $this->extension = $extension;
+
+        if (! $prefix) {
+            $this->addSitemap($this->route('pages'));
         }
 
         return $this;
     }
 
-    /**
-     * @param string $type
-     * @return string
-     */
-    public function render($type = 'xml')
+    public function addSitemap(string $loc, string|null $lastModified = null): self
+    {
+        if (! $this->isCached()) {
+            $this->siteMap->addSitemap($loc, $lastModified ?: $this->defaultDate);
+        }
+
+        return $this;
+    }
+
+    public function route(string|null $key = null): string
+    {
+        return route('public.sitemap.index', [$key, $this->extension]);
+    }
+
+    public function add(string $url, string|null $date = null, string $priority = '1.0', string $sequence = 'daily'): self
+    {
+        if (! $this->isCached()) {
+            $this->siteMap->add($url, $date ?: $this->defaultDate, $priority, $sequence);
+        }
+
+        return $this;
+    }
+
+    public function isCached(): bool
+    {
+        return $this->siteMap->isCached();
+    }
+
+    public function getSiteMap(): Sitemap
+    {
+        return $this->siteMap;
+    }
+
+    public function render(string $type = 'xml'): Response
     {
         // show your site map (options: 'xml' (default), 'html', 'txt', 'ror-rss', 'ror-rdf')
         return $this->siteMap->render($type);
+    }
+
+    public function getKeys(): array
+    {
+        return $this->keys;
+    }
+
+    public function registerKey(string|array $key, string|null $value = null): self
+    {
+        if (is_array($key)) {
+            $this->keys = array_merge($this->keys, $key);
+        } else {
+            $this->keys[$key] = $value ?: $key;
+        }
+
+        return $this;
+    }
+
+    public function allowedExtensions(): array
+    {
+        $extensions = ['xml', 'html', 'txt', 'ror-rss', 'ror-rdf'];
+
+        $slugPostfix = SlugHelper::getPublicSingleEndingURL();
+
+        if (! $slugPostfix) {
+            return $extensions;
+        }
+
+        $slugPostfix = trim($slugPostfix, '.');
+
+        return array_filter($extensions, fn ($item) => $item != $slugPostfix);
     }
 }
