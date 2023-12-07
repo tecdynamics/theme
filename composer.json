@@ -8,11 +8,11 @@
         }
     },
     "require": {
-        "tecdynamics/platform": "*@dev",
-        "tecdynamics/sitemap": "*@dev",
-        "tecdynamics/widget": "*@dev",
-        "tecdynamics/slug": "*@dev",
-        "tecdynamics/seo-helper": "*@dev"
+        "tecdynamics/platform": "*",
+        "tecdynamics/sitemap": "*",
+        "tecdynamics/widget": "*",
+        "tecdynamics/slug": "*",
+        "tecdynamics/seo-helper": "*"
     },
     "extra": {
         "laravel": {

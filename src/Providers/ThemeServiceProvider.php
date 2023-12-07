@@ -2,9 +2,13 @@
 
 namespace Tec\Theme\Providers;
 
+<<<<<<< HEAD
 use Tec\Base\Facades\DashboardMenu;
 use Tec\Base\Supports\DashboardMenu as DashboardMenuSupport;
 use Tec\Base\Supports\ServiceProvider;
+=======
+use Html;
+>>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
 use Tec\Base\Traits\LoadAndPublishDataTrait;
 use Tec\Theme\Commands\ThemeActivateCommand;
 use Tec\Theme\Commands\ThemeAssetsPublishCommand;
@@ -131,6 +135,44 @@ class ThemeServiceProvider extends ServiceProvider
         });
 
         $this->app->booted(function () {
+<<<<<<< HEAD
+=======
+            $file = ThemeFacade::getStyleIntegrationPath();
+            if (File::exists($file)) {
+                ThemeFacade::asset()
+                    ->container('after_header')
+                    ->usePath()
+                    ->add('theme-style-integration-css', str_replace(public_path(ThemeFacade::path()), '', $file), [], [], filectime($file));
+            }
+
+            if (config('packages.theme.general.enable_custom_js')) {
+                if (setting('custom_header_js')) {
+                    add_filter(THEME_FRONT_HEADER, function ($html) {
+                        return $html . ThemeSupport::getCustomJS('header');
+                    }, 15);
+                }
+
+                if (setting('custom_body_js')) {
+                    add_filter(THEME_FRONT_BODY, function ($html) {
+                        return $html . ThemeSupport::getCustomJS('body');
+                    }, 15);
+                }
+
+                if (setting('custom_footer_js')) {
+                    add_filter(THEME_FRONT_FOOTER, function ($html) {
+                        return $html . ThemeSupport::getCustomJS('footer');
+                    }, 15);
+                }
+            }
+//            add_filter(THEME_FRONT_HEADER, function ($html){
+//                $file =ThemeFacade::getStyleIntegrationPath();
+//                if ($this->app['files']->exists($file)) {
+//                    $html .= "\n" . Html::style(ThemeFacade::asset()->url('css/style.integration.css?v=' . filectime($file)));
+//                }
+//
+//                return $html;
+//            }, 15);
+>>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
             $this->app->register(HookServiceProvider::class);
         });
 

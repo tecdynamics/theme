@@ -2,6 +2,7 @@
 
 namespace Tec\Theme\Providers;
 
+<<<<<<< HEAD
 use Tec\Base\Facades\BaseHelper;
 use Tec\Base\Facades\Html;
 use Tec\Base\Supports\ServiceProvider;
@@ -12,6 +13,11 @@ use Tec\Shortcode\Compilers\ShortcodeCompiler;
 use Tec\Theme\Facades\AdminBar;
 use Tec\Theme\Facades\Theme;
 use Tec\Theme\Supports\ThemeSupport;
+=======
+use BaseHelper;
+use Tec\Dashboard\Supports\DashboardWidgetInstance;
+use Tec\Page\Models\Page;
+>>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
 use Tec\Theme\Supports\Vimeo;
 use Tec\Theme\Supports\Youtube;
 use Illuminate\Support\Collection;
@@ -25,14 +31,21 @@ class HookServiceProvider extends ServiceProvider
     {
         add_filter(PAGE_FILTER_PAGE_NAME_IN_ADMIN_LIST, function (string $name, Page $page) {
             if (BaseHelper::isHomepage($page->getKey())) {
+<<<<<<< HEAD
                 $name .= Html::tag('span', ' — ' . trans('packages/page::pages.front_page'), [
+=======
+                $name .=  Html::tag('span', ' — ' . trans('packages/page::pages.front_page'), [
+>>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
                     'class' => 'additional-page-name',
                 ])->toHtml();
             }
 
             return $name;
         }, 10, 2);
+<<<<<<< HEAD
 
+=======
+>>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
         add_filter(DASHBOARD_FILTER_ADMIN_LIST, [$this, 'addStatsWidgets'], 4, 2);
 
         add_filter(BASE_FILTER_AFTER_SETTING_CONTENT, [$this, 'addSetting'], 39);
@@ -180,6 +193,7 @@ class HookServiceProvider extends ServiceProvider
 
             $iframe = null;
 
+<<<<<<< HEAD
             $data = [
                 'class' => 'embed-responsive-item',
                 'height' => 315,
@@ -188,6 +202,17 @@ class HookServiceProvider extends ServiceProvider
 
             if ($shortcode->width) {
                 $data['width'] = $shortcode->width;
+=======
+            if (Youtube::isYoutubeURL($url)) {
+                $iframe = Html::tag('iframe', '', [
+                    'class'           => 'embed-responsive-item',
+                    'allowfullscreen' => true,
+                    'frameborder'     => 0,
+                    'height'          => 315,
+                    'width'           => 420,
+                    'src'             => Youtube::getYoutubeVideoEmbedURL($url),
+                ])->toHtml();
+>>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
             }
 
             if ($shortcode->height) {
@@ -204,10 +229,20 @@ class HookServiceProvider extends ServiceProvider
             } elseif (Vimeo::isVimeoURL($url)) {
                 $videoId = Vimeo::getVimeoID($url);
                 if ($videoId) {
+<<<<<<< HEAD
                     $data['allow'] = 'autoplay; fullscreen; picture-in-picture';
                     $data['src'] = 'https://player.vimeo.com/video/' . $videoId;
 
                     $iframe = Html::tag('iframe', '', $data)->toHtml();
+=======
+                    $iframe = Html::tag('iframe', '', [
+                        'class'           => 'embed-responsive-item',
+                        'height'          => 315,
+                        'width'           => 420,
+                        'allow'           => 'autoplay; fullscreen; picture-in-picture',
+                        'src'             => 'https://player.vimeo.com/video/' . $videoId,
+                    ])->toHtml();
+>>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
                 }
             }
 

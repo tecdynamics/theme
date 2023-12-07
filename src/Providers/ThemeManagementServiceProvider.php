@@ -39,10 +39,17 @@ class ThemeManagementServiceProvider extends ServiceProvider
             }
 
             Helper::autoload(theme_path($theme . '/functions'));
+<<<<<<< HEAD
 
             if (file_exists(base_path('themes/'.$theme . '/functions/functions.php'))){
              Helper::autoload(base_path('themes/'.$theme . '/functions'));
               }
+=======
+            //load child
+            $childPath = $this->app->basePath('themes/').$theme;
+             if(file_exists($childPath. '/functions/functions.php'))
+            Helper::autoload($childPath. '/functions/');
+>>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
         }
     }
 }
