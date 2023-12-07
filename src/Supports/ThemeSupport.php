@@ -41,27 +41,15 @@ class ThemeSupport
         });
     }
 
-<<<<<<< HEAD
     public static function getCustomJS(string $location): string
-=======
-    /**
-     * @param string $location
-     * @return string
-     */
-    public static function getCustomJS(string $location)
->>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
-    {
+     {
         $js = setting('custom_' . $location . '_js');
 
         if (empty($js)) {
             return '';
         }
-
-<<<<<<< HEAD
         if ((! Str::contains($js, '<script') || ! Str::contains($js, '</script>')) && ! Str::contains($js, '<noscript') && ! Str::contains($js, '</noscript>')) {
-=======
-        if (!Str::contains($js, '<script') || !Str::contains($js, '</script>')) {
->>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
+
             $js = Html::tag('script', $js);
         }
 

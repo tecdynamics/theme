@@ -15,10 +15,7 @@ use Tec\Theme\Facades\Theme;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-<<<<<<< HEAD
 
-=======
->>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
 class PublicController extends Controller
 {
     public function getIndex()
@@ -47,51 +44,6 @@ class PublicController extends Controller
 
         return Theme::scope('index')->render();
     }
-<<<<<<< HEAD
-=======
-    /**
-     * @param string $key
-     * @return \Illuminate\Http\RedirectResponse|Response
-     * @throws FileNotFoundException
-     */
-//    public function getView($key = null)
-//    {
-//        if (empty($key)) {
-//            return $this->getIndex();
-//        }
-//
-//        $slug = SlugHelper::getSlug($key, '');
-//
-//
-//        if (!$slug) {
-//            return abort(404);
-//
-//        }
-//
-//        if (defined('PAGE_MODULE_SCREEN_NAME')) {
-//            if ($slug->reference_type == Page::class && BaseHelper::isHomepage($slug->reference_id)) {
-//                return redirect()->route('public.index');
-//            }
-//        }
-//        $result = apply_filters(BASE_FILTER_PUBLIC_SINGLE_DATA, $slug);
-//
-//
-//        if(isset($result['data']['page']) && (int)$result['data']['page']->is_restricted>0 && \auth('customer')->check()===false) {
-//               return abort(404);
-//        }
-//
-//        if (isset($result['slug']) && $result['slug'] !== $key) {
-//            return redirect()->route('public.single', $result['slug']);
-//        }
-//
-//        event(new RenderingSingleEvent($slug));
-//
-//        if (!empty($result) && is_array($result)) {
-//            return Theme::scope($result['view'], $result['data'], Arr::get($result, 'default_view'))->render();
-//        }
-//        return    abort(404);
-//    }
->>>>>>> edf2a723c1757945b0ffd10aaf7c96257895e736
 
     public function getView(string|null $key = null, string $prefix = '')
     {
