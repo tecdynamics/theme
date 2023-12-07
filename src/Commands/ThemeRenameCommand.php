@@ -2,101 +2,68 @@
 
 namespace Tec\Theme\Commands;
 
-use Tec\Setting\Models\Setting as SettingModel;
+use Tec\Setting\Facades\Setting;
 use Tec\Theme\Commands\Traits\ThemeTrait;
+use Tec\Theme\Facades\ThemeOption;
 use Tec\Theme\Services\ThemeService;
 use Tec\Widget\Models\Widget;
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Contracts\Console\PromptsForMissingInput;
 use Illuminate\Filesystem\Filesystem as File;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Input\InputArgument;
 
-class ThemeRenameCommand extends Command
+#[AsCommand('cms:theme:rename', 'Rename theme to the new name')]
+class ThemeRenameCommand extends Command implements PromptsForMissingInput
 {
-
     use ThemeTrait;
 
-    /**
-     * @var ThemeService
-     */
-    public $themeService;
-
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $signature = 'cms:theme:rename {name : The theme that you want to rename} {newName : The new name}';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Rename theme to the new name';
-
-    /**
-     * @var File
-     */
-    protected $files;
-
-    /**
-     * Create a new command instance.
-     *
-     * @param File $files
-     * @param ThemeService $themeService
-     */
-    public function __construct(File $files, ThemeService $themeService)
-    {
-        parent::__construct();
-        $this->files = $files;
-        $this->themeService = $themeService;
-    }
-
-    /**
-     * Execute the console command.
-     *
-     * @return mixed
-     * @throws \League\Flysystem\FileNotFoundException
-     * @throws FileNotFoundException
-     */
-    public function handle()
+    public function handle(File $files, ThemeService $themeService): int
     {
         $theme = $this->getTheme();
 
         $newName = $this->argument('newName');
 
         if ($theme == $newName) {
-            $this->error('Theme name are the same!');
-            return 1;
+            $this->components->error('Theme name are the same!');
+
+            return self::FAILURE;
         }
 
-        if ($this->files->isDirectory(theme_path($newName))) {
-            $this->error('Theme "' . $theme . '" is already exists.');
-            return 1;
+        if ($files->isDirectory(theme_path($newName))) {
+            $this->components->error("Theme <info>$theme</info> is already exists.");
+
+            return self::FAILURE;
         }
 
-        $this->files->move(theme_path($theme), theme_path($newName));
+        $files->move(theme_path($theme), theme_path($newName));
 
-        $this->themeService->activate($newName);
+        $themeService->activate($newName);
 
-        $themeOptions = SettingModel::where('key', 'LIKE', 'theme-' . $theme . '-%')->get();
+        $themeOptions = Setting::newQuery()->where('key', 'LIKE', ThemeOption::getOptionKey('%', null, $theme))->get();
 
         foreach ($themeOptions as $option) {
-            $option->key = str_replace('theme-' . $theme, 'theme-' . $newName, $option->key);
+            $option->key = str_replace(ThemeOption::getOptionKey('', theme: $theme), ThemeOption::getOptionKey('', theme: $newName), $option->key);
             $option->save();
         }
 
-        Widget::where('theme', $theme)->update(['theme' => $newName]);
+        Widget::query()->where('theme', $theme)->update(['theme' => $newName]);
 
-        $widgets = Widget::where('theme', 'LIKE', $theme . '-%')->get();
+        $widgets = Widget::query()->where('theme', 'LIKE', $theme . '-%')->get();
 
         foreach ($widgets as $widget) {
             $widget->theme = str_replace($theme, $newName, $widget->theme);
             $widget->save();
         }
 
-        $this->info('Theme "' . $theme . '" has been renamed to ' . $newName . '!');
+        $this->components->info("Theme <info>$theme</info> has been renamed to <info>$newName</info>!");
 
-        return 0;
+        return self::SUCCESS;
+    }
+
+    protected function configure(): void
+    {
+        $this->addArgument('name', InputArgument::REQUIRED, 'The theme name that you want to rename');
+        $this->addArgument('newName', InputArgument::REQUIRED, 'The new name');
     }
 }

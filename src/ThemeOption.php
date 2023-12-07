@@ -2,85 +2,46 @@
 
 namespace Tec\Theme;
 
-use Exception;
-use Form;
+use Tec\Base\Facades\BaseHelper;
+use Tec\Base\Facades\Form;
+use Tec\Language\Facades\Language;
+use Tec\Setting\Facades\Setting;
 use Illuminate\Support\Arr;
-use Language;
-use Setting;
+use Illuminate\Support\Facades\App;
+use Throwable;
 
 class ThemeOption
 {
-    /**
-     * @var array
-     */
-    public $fields = [];
+    public array $fields = [];
 
-    /**
-     * @var array
-     */
-    public $sections = [];
+    public array $sections = [];
 
-    /**
-     * @var array
-     */
-    public $help = [];
+    public array $help = [];
 
-    /**
-     * @var array
-     */
-    public $args = [];
+    public array $args = [];
 
-    /**
-     * @var array
-     */
-    public $priority = [];
+    public array $priority = [];
 
-    /**
-     * @var array
-     */
-    public $errors = [];
+    public array $errors = [];
 
-    /**
-     * @var string
-     */
-    public $optName = 'theme';
+    public string $optName = 'theme';
 
     /**
      * Prepare args of theme options
-     *
-     * @return array
      */
     public function constructArgs(): array
     {
-        $args = isset($this->args[$this->optName]) ? $this->args[$this->optName] : [];
-
-        $args['opt_name'] = $this->optName;
-
-        if (!isset($args['menu_title'])) {
-            $args['menu_title'] = ucfirst($this->optName) . ' Options';
-        }
-
-        if (!isset($args['page_title'])) {
-            $args['page_title'] = ucfirst($this->optName) . ' Options';
-        }
-
-        if (!isset($args['page_slug'])) {
-            $args['page_slug'] = $this->optName . '_options';
-        }
-
-        return $args;
+        return $this->args[$this->optName] ?? [];
     }
 
     /**
      * Prepare sections to display theme options page
-     *
-     * @return array
      */
     public function constructSections(): array
     {
         $sections = [];
 
-        if (!isset($this->sections[$this->optName])) {
+        if (! isset($this->sections[$this->optName])) {
             return $sections;
         }
 
@@ -100,14 +61,11 @@ class ThemeOption
 
     /**
      * Prepare fields to display theme options page
-     *
-     * @param string $sectionId
-     * @return array
      */
     public function constructFields(string $sectionId = ''): array
     {
         $fields = [];
-        if (!empty($this->fields[$this->optName])) {
+        if (! empty($this->fields[$this->optName])) {
             foreach ($this->fields[$this->optName] as $field) {
                 if (Arr::get($field, 'section_id') == $sectionId) {
                     $priority = $field['priority'];
@@ -124,19 +82,16 @@ class ThemeOption
         return $fields;
     }
 
-    /**
-     * @param string $id
-     * @return bool
-     */
     public function getSection(string $id = ''): bool
     {
         $this->checkOptName();
-        if (!empty($this->optName) && !empty($id)) {
-            if (!isset($this->sections[$this->optName][$id])) {
+
+        if (! empty($this->optName) && ! empty($id)) {
+            if (! isset($this->sections[$this->optName][$id])) {
                 $id = strtolower(sanitize_html_class($id));
             }
 
-            return isset($this->sections[$this->optName][$id]) ? $this->sections[$this->optName][$id] : false;
+            return $this->sections[$this->optName][$id] ?? false;
         }
 
         return false;
@@ -144,56 +99,50 @@ class ThemeOption
 
     public function checkOptName(): void
     {
-        if (empty($this->optName) || is_array($this->optName)) {
+        if (empty($this->optName)) {
             return;
         }
 
-        if (!isset($this->sections[$this->optName])) {
+        if (! isset($this->sections[$this->optName])) {
             $this->sections[$this->optName] = [];
             $this->priority[$this->optName]['sections'] = 1;
         }
 
-        if (!isset($this->args[$this->optName])) {
+        if (! isset($this->args[$this->optName])) {
             $this->args[$this->optName] = [];
             $this->priority[$this->optName]['args'] = 1;
         }
 
-        if (!isset($this->fields[$this->optName])) {
+        if (! isset($this->fields[$this->optName])) {
             $this->fields[$this->optName] = [];
             $this->priority[$this->optName]['fields'] = 1;
         }
 
-        if (!isset($this->help[$this->optName])) {
+        if (! isset($this->help[$this->optName])) {
             $this->help[$this->optName] = [];
             $this->priority[$this->optName]['help'] = 1;
         }
 
-        if (!isset($this->errors[$this->optName])) {
+        if (! isset($this->errors[$this->optName])) {
             $this->errors[$this->optName] = [];
         }
     }
 
-    /**
-     * @return array
-     */
     public function getSections(): array
     {
         $this->checkOptName();
-        if (!empty($this->sections[$this->optName])) {
+
+        if (! empty($this->sections[$this->optName])) {
             return $this->sections[$this->optName];
         }
 
         return [];
     }
 
-    /**
-     * @param array $sections
-     * @return $this
-     */
     public function setSections(array $sections = []): self
     {
         $this->checkOptName();
-        if (!empty($sections)) {
+        if (! empty($sections)) {
             foreach ($sections as $section) {
                 $this->setSection($section);
             }
@@ -202,10 +151,6 @@ class ThemeOption
         return $this;
     }
 
-    /**
-     * @param array $section
-     * @return $this
-     */
     public function setSection(array $section = []): self
     {
         $this->checkOptName();
@@ -214,15 +159,13 @@ class ThemeOption
             return $this;
         }
 
-        if (!isset($section['id'])) {
+        if (! isset($section['id'])) {
             if (isset($section['type']) && $section['type'] == 'divide') {
                 $section['id'] = time();
+            } elseif (isset($section['title'])) {
+                $section['id'] = strtolower($section['title']);
             } else {
-                if (isset($section['title'])) {
-                    $section['id'] = strtolower($section['title']);
-                } else {
-                    $section['id'] = time();
-                }
+                $section['id'] = time();
             }
 
             if (isset($this->sections[$this->optName][$section['id']])) {
@@ -234,19 +177,19 @@ class ThemeOption
             }
         }
 
-        if (!empty($this->optName) && is_array($section) && !empty($section)) {
-            if (!isset($section['id']) && !isset($section['title'])) {
+        if (! empty($this->optName) && is_array($section)) {
+            if (! isset($section['title'])) {
                 $this->errors[$this->optName]['section']['missing_title'] = 'Unable to create a section due to missing id and title.';
 
                 return $this;
             }
 
-            if (!isset($section['priority'])) {
+            if (! isset($section['priority'])) {
                 $section['priority'] = $this->getPriority('sections');
             }
 
             if (isset($section['fields'])) {
-                if (!empty($section['fields']) && is_array($section['fields'])) {
+                if (! empty($section['fields']) && is_array($section['fields'])) {
                     $this->processFieldsArray($section['id'], $section['fields']);
                 }
                 unset($section['fields']);
@@ -262,10 +205,6 @@ class ThemeOption
         return $this;
     }
 
-    /**
-     * @param string $type
-     * @return int
-     */
     public function getPriority(string $type): int
     {
         $priority = $this->priority[$this->optName][$type];
@@ -274,33 +213,26 @@ class ThemeOption
         return $priority;
     }
 
-    /**
-     * @param string $sectionId
-     * @param array $fields
-     */
     public function processFieldsArray(string $sectionId = '', array $fields = []): void
     {
-        if (!empty($this->optName) && !empty($sectionId) && is_array($fields) && !empty($fields)) {
+        if (! empty($this->optName) && ! empty($sectionId) && is_array($fields) && ! empty($fields)) {
             foreach ($fields as $field) {
-                if (!is_array($field)) {
+                if (! is_array($field)) {
                     continue;
                 }
+
                 $field['section_id'] = $sectionId;
                 $this->setField($field);
             }
         }
     }
 
-    /**
-     * @param array $field
-     * @return $this
-     */
     public function setField(array $field = []): self
     {
         $this->checkOptName();
 
-        if (!empty($this->optName) && is_array($field) && !empty($field)) {
-            if (!isset($field['priority'])) {
+        if (! empty($this->optName) && is_array($field) && ! empty($field)) {
+            if (! isset($field['priority'])) {
                 $field['priority'] = $this->getPriority('fields');
             }
 
@@ -312,14 +244,9 @@ class ThemeOption
         return $this;
     }
 
-    /**
-     * @param string $id
-     * @param bool $fields
-     * @return $this
-     */
     public function removeSection(string $id = '', bool $fields = false): self
     {
-        if (!empty($this->optName) && !empty($id)) {
+        if (! empty($this->optName) && ! empty($id)) {
             if (isset($this->sections[$this->optName][$id])) {
                 $priority = '';
 
@@ -328,6 +255,7 @@ class ThemeOption
                         $priority = $section['priority'];
                         $this->priority[$this->optName]['sections']--;
                         unset($this->sections[$this->optName][$id]);
+
                         continue;
                     }
 
@@ -339,7 +267,7 @@ class ThemeOption
                     }
                 }
 
-                if (isset($this->fields[$this->optName]) && !empty($this->fields[$this->optName]) && $fields == true) {
+                if (isset($this->fields[$this->optName]) && ! empty($this->fields[$this->optName]) && $fields) {
                     foreach ($this->fields[$this->optName] as $key => $field) {
                         if (Arr::get($field, 'section_id') == $id) {
                             unset($this->fields[$this->optName][$key]);
@@ -352,69 +280,55 @@ class ThemeOption
         return $this;
     }
 
-    /**
-     * @param string $id
-     * @param bool $hide
-     */
     public function hideSection(string $id = '', bool $hide = true): void
     {
         $this->checkOptName();
 
-        if (!empty($this->optName) && !empty($id) && isset($this->sections[$this->optName][$id])) {
+        if (! empty($this->optName) && ! empty($id) && isset($this->sections[$this->optName][$id])) {
             $this->sections[$this->optName][$id]['hidden'] = $hide;
         }
     }
 
-    /**
-     * @param string $id
-     * @return bool|array
-     */
-    public function getField(string $id = '')
+    public function getField(string $id = ''): bool|array
     {
         $this->checkOptName();
 
-        if (!empty($this->optName) && !empty($id)) {
-            return isset($this->fields[$this->optName][$id]) ? $this->fields[$this->optName][$id] : false;
+        if (! empty($this->optName) && ! empty($id)) {
+            return $this->fields[$this->optName][$id] ?? false;
         }
 
         return false;
     }
 
-    /**
-     * @param string $id
-     * @param bool $hide
-     */
     public function hideField(string $id = '', bool $hide = true): void
     {
         $this->checkOptName();
 
-        if (!empty($this->optName) && !empty($id)) {
-            if (isset($this->fields[$this->optName][$id])) {
-                if (!$hide) {
-                    $this->fields[$this->optName][$id]['class'] = str_replace('hidden', '',
-                        $this->fields[$this->optName][$id]['class']);
-                } else {
-                    $this->fields[$this->optName][$id]['class'] .= 'hidden';
-                }
+        if (! empty($this->optName) && ! empty($id) && isset($this->fields[$this->optName][$id])) {
+            if (! $hide) {
+                $this->fields[$this->optName][$id]['class'] = str_replace(
+                    'hidden',
+                    '',
+                    $this->fields[$this->optName][$id]['class']
+                );
+            } else {
+                $this->fields[$this->optName][$id]['class'] .= 'hidden';
             }
         }
     }
 
-    /**
-     * @param string $id
-     * @return $this
-     */
     public function removeField(string $id = ''): self
     {
         $this->checkOptName();
 
-        if (!empty($this->optName) && !empty($id)) {
+        if (! empty($this->optName) && ! empty($id)) {
             if (isset($this->fields[$this->optName][$id])) {
                 foreach ($this->fields[$this->optName] as $key => $field) {
                     if ($key == $id) {
                         $priority = $field['priority'];
                         $this->priority[$this->optName]['fields']--;
                         unset($this->fields[$this->optName][$id]);
+
                         continue;
                     }
 
@@ -431,30 +345,23 @@ class ThemeOption
         return $this;
     }
 
-    /**
-     * @return array
-     */
     public function getArgs(): array
     {
         $this->checkOptName();
 
-        if (!empty($this->optName) && !empty($this->args[$this->optName])) {
+        if (! empty($this->optName) && ! empty($this->args[$this->optName])) {
             return $this->args[$this->optName];
         }
 
         return [];
     }
 
-    /**
-     * @param array $args
-     * @return $this
-     */
     public function setArgs(array $args = []): self
     {
         $this->checkOptName();
 
-        if (!empty($this->optName) && !empty($args) && is_array($args)) {
-            if (isset($this->args[$this->optName]) && isset($this->args[$this->optName]['clearArgs'])) {
+        if (! empty($this->optName) && ! empty($args) && is_array($args)) {
+            if (isset($this->args[$this->optName]['clearArgs'])) {
                 $this->args[$this->optName] = [];
             }
 
@@ -464,32 +371,23 @@ class ThemeOption
         return $this;
     }
 
-    /**
-     * @param string $key
-     * @return null
-     */
-    public function getArg(string $key = ''): ?string
+    public function getArg(string $key = ''): string|null
     {
         $this->checkOptName();
 
-        if (!empty($this->optName) && !empty($key) && !empty($this->args[$this->optName])) {
+        if (! empty($this->optName) && ! empty($key) && ! empty($this->args[$this->optName])) {
             return Arr::get($this->args[$this->optName], $key);
         }
 
         return null;
     }
 
-    /**
-     * @param string $key
-     * @param string $value
-     * @return ThemeOption
-     */
-    public function setOption(string $key, ?string $value = ''): self
+    public function setOption(string $key, array|string|null $value = ''): self
     {
         $option = Arr::get($this->fields[$this->optName], $key);
 
         if ($option && Arr::get($option, 'clean_tags', true)) {
-            $value = clean($value);
+            $value = BaseHelper::clean($value);
         }
 
         if (is_array($value)) {
@@ -501,27 +399,29 @@ class ThemeOption
         return $this;
     }
 
-    /**
-     * @param string $key
-     * @param string $locale
-     * @return string
-     */
-    protected function getOptionKey(string $key, ?string $locale = ''): string
+    public function getOptionKey(string $key, string|null $locale = '', string $theme = null): string
     {
-        $theme = setting('theme');
-        if (!$theme) {
-            $theme = Arr::first(scan_folder(theme_path()));
+        if (! $theme) {
+            $theme = setting('theme');
+            if (! $theme) {
+                $theme = Arr::first(BaseHelper::scanFolder(theme_path()));
+            }
         }
+
+        $defaultLocale = App::getLocale();
+
+        if (! $locale && defined('LANGUAGE_MODULE_SCREEN_NAME')) {
+            $defaultLocale = Language::getDefaultLocaleCode();
+        }
+
+        $locale = $locale && $locale != $defaultLocale ? '-' . ltrim($locale, '-') : null;
 
         return $this->optName . '-' . $theme . $locale . '-' . $key;
     }
 
-    /**
-     * @return null|string
-     */
-    protected function getCurrentLocaleCode(): ?string
+    protected function getCurrentLocaleCode(): string|null
     {
-        if (!defined('LANGUAGE_MODULE_SCREEN_NAME')) {
+        if (! defined('LANGUAGE_MODULE_SCREEN_NAME')) {
             return null;
         }
 
@@ -530,39 +430,29 @@ class ThemeOption
         return $currentLocale && $currentLocale != Language::getDefaultLocaleCode() ? '-' . $currentLocale : null;
     }
 
-    /**
-     * @param array $field
-     * @return mixed|string
-     */
-    public function renderField(array $field): ?string
+    public function renderField(array $field): string|null
     {
         try {
-            if ($this->hasOption($field['attributes']['name'])) {
-                $field['attributes']['value'] = $this->getOption($field['attributes']['name']);
+            $attributes = $field['attributes'];
+
+            if ($this->hasOption($attributes['name'])) {
+                $attributes['value'] = $this->getOption($attributes['name']);
             }
 
-            return call_user_func_array([Form::class, $field['type']], array_values($field['attributes']));
-        } catch (Exception $exception) {
-            info($exception->getMessage());
+            return call_user_func_array([Form::class, $field['type']], array_values($attributes));
+        } catch (Throwable $exception) {
+            BaseHelper::logError($exception);
+
             return null;
         }
     }
 
-    /**
-     * @param string $key
-     * @return bool
-     */
     public function hasOption(string $key): bool
     {
         return setting()->has($this->getOptionKey($key, $this->getCurrentLocaleCode()));
     }
 
-    /**
-     * @param string $key
-     * @param string $default
-     * @return string
-     */
-    public function getOption(string $key = '', $default = ''): ?string
+    public function getOption(string $key = '', string|null|array $default = ''): string|null
     {
         if (is_array($default)) {
             $default = json_encode($default);
@@ -581,11 +471,37 @@ class ThemeOption
         return $value;
     }
 
-    /**
-     * @return bool|void
-     */
-    public function saveOptions()
+    public function saveOptions(): bool
     {
         return setting()->save();
+    }
+
+    public function getFields(): array
+    {
+        return $this->fields;
+    }
+
+    public function hasField(string $id): bool
+    {
+        $this->checkOptName();
+
+        if (! empty($this->optName)) {
+            return isset($this->fields[$this->optName][$id]);
+        }
+
+        return false;
+    }
+
+    public function prepareFromArray(array $options, string $locale = null, string $defaultLocale = null): array
+    {
+        return collect($options)
+            ->mapWithKeys(function (string|array $value, string $key) use ($locale, $defaultLocale) {
+                if (is_array($value)) {
+                    $value = json_encode($value);
+                }
+
+                return [$this->getOptionKey($key, $locale != $defaultLocale ? $locale : null) => $value];
+            })
+            ->all();
     }
 }

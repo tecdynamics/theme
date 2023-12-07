@@ -7,13 +7,13 @@ use Illuminate\Support\Str;
 
 class Youtube
 {
-    /**
-     * @param string $url
-     * @return string
-     */
-    public static function getYoutubeVideoEmbedURL(string $url): string
+    public static function getYoutubeVideoEmbedURL(string|null $url): string
     {
-        $url = rtrim($url, '/');
+        $url = rtrim((string)$url, '/');
+
+        if (! $url) {
+            return $url;
+        }
 
         if (Str::contains($url, 'watch?v=')) {
             $url = str_replace('watch?v=', 'embed/', $url);
@@ -30,13 +30,13 @@ class Youtube
         return $url;
     }
 
-    /**
-     * @param string $url
-     * @return string
-     */
-    public static function getYoutubeWatchURL(string $url): string
+    public static function getYoutubeWatchURL(string|null $url): string
     {
-        $url = rtrim($url, '/');
+        $url = rtrim((string)$url, '/');
+
+        if (! $url) {
+            return $url;
+        }
 
         if (Str::contains($url, 'embed/')) {
             $url = str_replace('embed/', 'watch?v=', $url);
@@ -53,12 +53,14 @@ class Youtube
         return $url;
     }
 
-    /**
-     * @param string $url
-     * @return null|string
-     */
-    public static function getYoutubeVideoID(string $url): ?string
+    public static function getYoutubeVideoID(string|null $url): string|null
     {
+        $url = rtrim((string)$url, '/');
+
+        if (! $url) {
+            return $url;
+        }
+
         $regExp = '/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/';
 
         preg_match($regExp, $url, $matches);
@@ -70,12 +72,14 @@ class Youtube
         return null;
     }
 
-    /**
-     * @param string $url
-     * @return bool
-     */
-    public static function isYoutubeURL(string $url): bool
+    public static function isYoutubeURL(string|null $url): bool
     {
+        $url = rtrim((string)$url, '/');
+
+        if (! $url) {
+            return false;
+        }
+
         $regExp = '/^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/';
 
         return preg_match($regExp, $url);

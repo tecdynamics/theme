@@ -1,3 +1,3 @@
 $(document).ready(() => {
-    Tec.initCodeEditor('custom_css');
-});
+    Tec.initCodeEditor('custom_css')
+})

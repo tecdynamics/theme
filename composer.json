@@ -7,7 +7,13 @@
             "Tec\\Theme\\": "src"
         }
     },
-
+    "require": {
+        "tecdynamics/platform": "*@dev",
+        "tecdynamics/sitemap": "*@dev",
+        "tecdynamics/widget": "*@dev",
+        "tecdynamics/slug": "*@dev",
+        "tecdynamics/seo-helper": "*@dev"
+    },
     "extra": {
         "laravel": {
             "providers": [
@@ -15,11 +21,11 @@
                 "Tec\\Theme\\Providers\\RouteServiceProvider"
             ],
             "aliases": {
-                "Theme": "Tec\\Theme\\Facades\\ThemeFacade",
-                "ThemeOption": "Tec\\Theme\\Facades\\ThemeOptionFacade",
-                "ThemeManager": "Tec\\Theme\\Facades\\ManagerFacade",
-                "AdminBar": "Tec\\Theme\\Facades\\AdminBarFacade",
-                "SiteMapManager": "Tec\\Theme\\Facades\\SiteMapManagerFacade"
+                "Theme": "Tec\\Theme\\Facades\\Theme",
+                "ThemeOption": "Tec\\Theme\\Facades\\ThemeOption",
+                "ThemeManager": "Tec\\Theme\\Facades\\Manager",
+                "AdminBar": "Tec\\Theme\\Facades\\AdminBar",
+                "SiteMapManager": "Tec\\Theme\\Facades\\SiteMapManager"
             }
         }
     }

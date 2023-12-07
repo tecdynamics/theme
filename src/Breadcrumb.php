@@ -2,74 +2,57 @@
 
 namespace Tec\Theme;
 
-use Throwable;
-use URL;
+use Illuminate\Support\Facades\URL;
 
 class Breadcrumb
 {
-    /**
-     * Crumbs
-     *
-     * @var array
-     */
-    public $crumbs = [];
+    public array $crumbs = [];
 
-    /**
-     * Add breadcrumb to array.
-     *
-     * @param mixed $label
-     * @param string $url
-     * @return Breadcrumb
-     */
-    public function add(string $label, ?string $url = '', ?string $slug = ''): self
+    public function enabled(): bool
     {
+        return (bool)theme_option('theme_breadcrumb_enabled', 1) == 1;
+    }
+
+    public function add(string|array|null $label, string|null $url = ''): self
+    {
+        if (! $this->enabled()) {
+            return $this;
+        }
+
         if (is_array($label)) {
             if (count($label) > 0) {
                 foreach ($label as $crumb) {
-                    $slg = explode('\/', $crumb['url']);
-                    $slg = end($slg);
                     $defaults = [
                         'label' => '',
-                        'url'   => '',
-                        'slug' => $slg
+                        'url' => '',
                     ];
                     $crumb = array_merge($defaults, $crumb);
-                    $this->add($crumb['label'], $crumb['url'],$slg);
+                    $this->add($crumb['label'], $crumb['url']);
                 }
             }
         } else {
             $label = trim(strip_tags($label, '<i><b><strong>'));
-              if (!preg_match('|^http(s)?|', $url)) {
+            if (! preg_match('|^http(s)?|', $url)) {
                 $url = URL::to($url);
             }
-                $slg = explode('/', $url);
-                $slg = end($slg);
 
-            $this->crumbs[] = ['label' => $label, 'url' => $url,'slug'=> $slg];
+            $this->crumbs[] = ['label' => $label, 'url' => $url];
         }
 
         return $this;
     }
 
-    /**
-     * Render breadcrumbs.
-     *
-     * @return string
-     *
-     * @throws Throwable
-     */
-    public function render(): string
+    public function render(string $view = 'packages/theme::partials.breadcrumb'): string
     {
-        return view('packages/theme::partials.breadcrumb')->render();
+        return view($view)->render();
     }
 
-    /**
-     * Get crumbs.
-     *
-     * @return array
-     */
     public function getCrumbs(): array
     {
+        if (! $this->enabled()) {
+            return [];
+        }
+
         return $this->crumbs;
     }
 }
