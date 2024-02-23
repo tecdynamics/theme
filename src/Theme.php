@@ -2,6 +2,8 @@
 
 namespace Tec\Theme;
 
+use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Route;
 use Tec\Base\Facades\BaseHelper;
 use Tec\Base\Facades\Form;
 use Tec\Base\Facades\Html;
@@ -1014,4 +1016,10 @@ class Theme implements ThemeContract
             return $html;
         }, 1180);
     }
+	 public function registerRoutes(Closure|callable $closure): Router
+	 {
+			return Route::group(apply_filters(BASE_FILTER_GROUP_PUBLIC_ROUTE, []), function () use ($closure) {
+				 Route::middleware(['web', 'core'])->group(fn () => $closure());
+			});
+	 }
 }
