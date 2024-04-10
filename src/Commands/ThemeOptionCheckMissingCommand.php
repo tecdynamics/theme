@@ -4,6 +4,7 @@ namespace Tec\Theme\Commands;
 
 use Tec\Language\Facades\Language;
 use Tec\Setting\Facades\Setting;
+use Tec\Theme\Events\RenderingThemeOptionSettings;
 use Tec\Theme\Facades\ThemeOption;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
@@ -17,7 +18,7 @@ class ThemeOptionCheckMissingCommand extends Command
     public function handle(): int
     {
         $isReverse = $this->option('reverse');
-
+        RenderingThemeOptionSettings::dispatch();
         $fields = array_map(function ($name) {
             return ThemeOption::getOptionKey($name);
         }, array_keys(Arr::get(ThemeOption::getFields(), 'theme')));

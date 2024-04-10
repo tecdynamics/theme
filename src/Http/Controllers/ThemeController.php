@@ -8,6 +8,7 @@ use Tec\Base\Facades\PageTitle;
 use Tec\Base\Forms\FormBuilder;
 use Tec\Base\Http\Controllers\BaseController;
 use Tec\Base\Http\Responses\BaseHttpResponse;
+use Tec\Theme\Events\RenderingThemeOptionSettings;
 use Tec\Theme\Facades\Theme;
 use Tec\Theme\Facades\ThemeOption;
 use Tec\Theme\Forms\CustomCSSForm;
@@ -53,7 +54,7 @@ class ThemeController extends BaseController
             ->addScriptsDirectly([
                 'vendor/core/packages/theme/js/theme-options.js',
             ]);
-
+        RenderingThemeOptionSettings::dispatch();
         do_action(RENDERING_THEME_OPTIONS_PAGE);
 
         return view('packages/theme::options');
@@ -61,6 +62,7 @@ class ThemeController extends BaseController
 
     public function postUpdate(Request $request, BaseHttpResponse $response)
     {
+        RenderingThemeOptionSettings::dispatch();
         foreach ($request->except(['_token', 'ref_lang', 'ref_from']) as $key => $value) {
             if (is_array($value)) {
                 $value = json_encode($value);
