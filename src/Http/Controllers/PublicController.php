@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 
 class PublicController extends Controller
 {
+
     public function getIndex()
     {
         if (
