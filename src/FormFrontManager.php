@@ -64,12 +64,12 @@ class FormFrontManager
         return static::$forms;
     }
 
-    public static function formRequestOf(string $form): string|null
+    public static function formRequestOf(string $form): ?string
     {
         return static::$formRequests[$form] ?? null;
     }
 
-    public static function formByRequest(string $request): string|null
+    public static function formByRequest(string $request): ?string
     {
         return array_search($request, static::$formRequests);
     }

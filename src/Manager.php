@@ -3,14 +3,16 @@
 namespace Tec\Theme;
 
 use Tec\Base\Facades\BaseHelper;
-use Tec\Theme\Facades\Theme;
+use Tec\Theme\Facades\Theme as ThemeFacade;
+use Tec\Theme\Services\ThemeService;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\File;
 
 class Manager
 {
     protected array $themes = [];
 
-    public function __construct()
+    public function __construct(protected ThemeService $themeService)
     {
         $this->registerTheme(self::getAllThemes());
     }
@@ -31,7 +33,7 @@ class Manager
         foreach (BaseHelper::scanFolder($themePath) as $folder) {
             $jsonFile = $themePath . '/' . $folder . '/theme.json';
 
-            $publicJsonFile = public_path('themes/' . Theme::getPublicThemeName() . '/theme.json');
+            $publicJsonFile = public_path('themes/' . ThemeFacade::getPublicThemeName() . '/theme.json');
 
             if (File::exists($publicJsonFile)) {
                 $jsonFile = $publicJsonFile;
@@ -42,8 +44,12 @@ class Manager
             }
 
             $theme = BaseHelper::getFileData($jsonFile);
+
             if (! empty($theme)) {
+                $themeConfig = $this->themeService->getThemeConfig($folder);
+
                 $themes[$folder] = $theme;
+                $themes[$folder]['inherit'] = Arr::get($themeConfig, 'inherit');
             }
         }
 

@@ -4,19 +4,22 @@ namespace Tec\Theme\Http\Controllers;
 
 use Tec\Base\Facades\Assets;
 use Tec\Base\Facades\BaseHelper;
-use Tec\Base\Facades\PageTitle;
-use Tec\Base\Forms\FormBuilder;
 use Tec\Base\Http\Controllers\BaseController;
-use Tec\Base\Http\Responses\BaseHttpResponse;
+use Tec\Base\Supports\Breadcrumb;
+use Tec\Setting\Http\Controllers\Concerns\InteractsWithSettings;
 use Tec\Theme\Events\RenderingThemeOptionSettings;
+use Tec\Theme\Facades\Manager;
 use Tec\Theme\Facades\Theme;
 use Tec\Theme\Facades\ThemeOption;
 use Tec\Theme\Forms\CustomCSSForm;
 use Tec\Theme\Forms\CustomHTMLForm;
 use Tec\Theme\Forms\CustomJSForm;
+use Tec\Theme\Forms\RobotsTxtEditorForm;
 use Tec\Theme\Http\Requests\CustomCssRequest;
 use Tec\Theme\Http\Requests\CustomHtmlRequest;
 use Tec\Theme\Http\Requests\CustomJsRequest;
+use Tec\Theme\Http\Requests\RobotsTxtRequest;
+use Tec\Theme\Http\Requests\UpdateOptionsRequest;
 use Tec\Theme\Services\ThemeService;
 use Exception;
 use Illuminate\Http\Request;
@@ -25,13 +28,21 @@ use Illuminate\Support\Facades\File;
 
 class ThemeController extends BaseController
 {
+    use InteractsWithSettings;
+
+    protected function breadcrumb(): Breadcrumb
+    {
+        return parent::breadcrumb()
+            ->add(trans('packages/theme::theme.appearance'));
+    }
+
     public function index()
     {
         if (! config('packages.theme.general.display_theme_manager_in_admin_panel', true)) {
             abort(404);
         }
 
-        PageTitle::setTitle(trans('packages/theme::theme.name'));
+        $this->pageTitle(trans('packages/theme::theme.name'));
 
         if (File::exists(theme_path('.DS_Store'))) {
             File::delete(theme_path('.DS_Store'));
@@ -39,30 +50,34 @@ class ThemeController extends BaseController
 
         Assets::addScriptsDirectly('vendor/core/packages/theme/js/theme.js');
 
-        return view('packages/theme::list');
+        $themes = Manager::getThemes();
+
+        return view('packages/theme::list', compact('themes'));
     }
 
     public function getOptions()
     {
-        PageTitle::setTitle(trans('packages/theme::theme.theme_options'));
+        $this->pageTitle(trans('packages/theme::theme.theme_options'));
 
-        Assets::addScripts(['are-you-sure', 'colorpicker', 'jquery-ui'])
-            ->addStyles(['colorpicker'])
+        Assets::addScripts(['are-you-sure', 'jquery-ui'])
             ->addStylesDirectly([
                 'vendor/core/packages/theme/css/theme-options.css',
             ])
             ->addScriptsDirectly([
                 'vendor/core/packages/theme/js/theme-options.js',
             ]);
+
         RenderingThemeOptionSettings::dispatch();
+
         do_action(RENDERING_THEME_OPTIONS_PAGE);
 
         return view('packages/theme::options');
     }
 
-    public function postUpdate(Request $request, BaseHttpResponse $response)
+    public function postUpdate(UpdateOptionsRequest $request)
     {
         RenderingThemeOptionSettings::dispatch();
+
         foreach ($request->except(['_token', 'ref_lang', 'ref_from']) as $key => $value) {
             if (is_array($value)) {
                 $value = json_encode($value);
@@ -70,7 +85,7 @@ class ThemeController extends BaseController
                 $field = ThemeOption::getField($key);
 
                 if ($field && Arr::get($field, 'clean_tags', true)) {
-                    $value = BaseHelper::clean(strip_tags((string)$value));
+                    $value = BaseHelper::clean(strip_tags((string) $value));
                 }
             }
 
@@ -79,10 +94,12 @@ class ThemeController extends BaseController
 
         ThemeOption::saveOptions();
 
-        return $response->setMessage(trans('core/base::notices.update_success_message'));
+        return $this
+            ->httpResponse()
+            ->withUpdatedSuccessMessage();
     }
 
-    public function postActivateTheme(Request $request, BaseHttpResponse $response, ThemeService $themeService)
+    public function postActivateTheme(Request $request, ThemeService $themeService)
     {
         if (! config('packages.theme.general.display_theme_manager_in_admin_panel', true)) {
             abort(404);
@@ -90,42 +107,26 @@ class ThemeController extends BaseController
 
         $result = $themeService->activate($request->input('theme'));
 
-        if ($result['error']) {
-            return $response->setError()->setMessage($result['message']);
-        }
-
-        return $response
-            ->setMessage(trans('packages/theme::theme.active_success'));
+        return $this
+            ->httpResponse()
+            ->setError($result['error'])
+            ->setMessage($result['message']);
     }
 
-    public function getCustomCss(FormBuilder $formBuilder)
+    public function getCustomCss()
     {
-        PageTitle::setTitle(trans('packages/theme::theme.custom_css'));
+        $this->pageTitle(trans('packages/theme::theme.custom_css'));
 
-        Assets::addStylesDirectly([
-            'vendor/core/core/base/libraries/codemirror/lib/codemirror.css',
-            'vendor/core/core/base/libraries/codemirror/addon/hint/show-hint.css',
-            'vendor/core/packages/theme/css/custom-css.css',
-        ])
-            ->addScriptsDirectly([
-                'vendor/core/core/base/libraries/codemirror/lib/codemirror.js',
-                'vendor/core/core/base/libraries/codemirror/lib/css.js',
-                'vendor/core/core/base/libraries/codemirror/addon/hint/show-hint.js',
-                'vendor/core/core/base/libraries/codemirror/addon/hint/anyword-hint.js',
-                'vendor/core/core/base/libraries/codemirror/addon/hint/css-hint.js',
-                'vendor/core/packages/theme/js/custom-css.js',
-            ]);
-
-        return $formBuilder->create(CustomCSSForm::class)->renderForm();
+        return CustomCSSForm::create()->renderForm();
     }
 
-    public function postCustomCss(CustomCssRequest $request, BaseHttpResponse $response)
+    public function postCustomCss(CustomCssRequest $request)
     {
         File::delete(theme_path(Theme::getThemeName() . '/public/css/style.integration.css'));
 
         $file = Theme::getStyleIntegrationPath();
         $css = $request->input('custom_css');
-        $css = strip_tags((string)$css);
+        $css = strip_tags((string) $css);
 
         if (empty($css)) {
             File::delete($file);
@@ -133,7 +134,8 @@ class ThemeController extends BaseController
             $saved = BaseHelper::saveFileData($file, $css, false);
 
             if (! $saved) {
-                return $response
+                return $this
+                    ->httpResponse()
                     ->setError()
                     ->setMessage(
                         trans('packages/theme::theme.folder_is_not_writeable', ['name' => File::dirname($file)])
@@ -141,50 +143,32 @@ class ThemeController extends BaseController
             }
         }
 
-        return $response->setMessage(trans('packages/theme::theme.update_custom_css_success'));
+        return $this
+            ->httpResponse()
+            ->withUpdatedSuccessMessage();
     }
 
-    public function getCustomJs(FormBuilder $formBuilder)
+    public function getCustomJs()
     {
         if (! config('packages.theme.general.enable_custom_js')) {
             abort(404);
         }
 
-        PageTitle::setTitle(trans('packages/theme::theme.custom_js'));
+        $this->pageTitle(trans('packages/theme::theme.custom_js'));
 
-        Assets::addStylesDirectly([
-            'vendor/core/core/base/libraries/codemirror/lib/codemirror.css',
-            'vendor/core/core/base/libraries/codemirror/addon/hint/show-hint.css',
-            'vendor/core/packages/theme/css/custom-css.css',
-        ])
-            ->addScriptsDirectly([
-                'vendor/core/core/base/libraries/codemirror/lib/codemirror.js',
-                'vendor/core/core/base/libraries/codemirror/lib/javascript.js',
-                'vendor/core/core/base/libraries/codemirror/addon/hint/show-hint.js',
-                'vendor/core/core/base/libraries/codemirror/addon/hint/anyword-hint.js',
-                'vendor/core/core/base/libraries/codemirror/addon/hint/javascript-hint.js',
-                'vendor/core/packages/theme/js/custom-js.js',
-            ]);
-
-        return $formBuilder->create(CustomJSForm::class)->renderForm();
+        return CustomJSForm::create()->renderForm();
     }
 
-    public function postCustomJs(CustomJsRequest $request, BaseHttpResponse $response)
+    public function postCustomJs(CustomJsRequest $request)
     {
         if (! config('packages.theme.general.enable_custom_js')) {
             abort(404);
         }
 
-        setting()
-            ->set('custom_header_js', $request->input('header_js') ?: '')
-            ->set('custom_body_js', $request->input('body_js') ?: '')
-            ->set('custom_footer_js', $request->input('footer_js') ?: '')
-            ->save();
-
-        return $response->setMessage(trans('packages/theme::theme.update_custom_js_success'));
+        return $this->performUpdate($request->validated());
     }
 
-    public function postRemoveTheme(Request $request, BaseHttpResponse $response, ThemeService $themeService)
+    public function postRemoveTheme(Request $request, ThemeService $themeService)
     {
         if (! config('packages.theme.general.display_theme_manager_in_admin_panel', true)) {
             abort(404);
@@ -196,60 +180,82 @@ class ThemeController extends BaseController
             try {
                 $result = $themeService->remove($theme);
 
-                if ($result['error']) {
-                    return $response->setError()->setMessage($result['message']);
-                }
-
-                return $response->setMessage(trans('packages/theme::theme.remove_theme_success'));
+                return $this
+                    ->httpResponse()
+                    ->setError($result['error'])
+                    ->setMessage($result['message']);
             } catch (Exception $exception) {
-                return $response
+                return $this
+                    ->httpResponse()
                     ->setError()
                     ->setMessage($exception->getMessage());
             }
         }
 
-        return $response
+        return $this
+            ->httpResponse()
             ->setError()
             ->setMessage(trans('packages/theme::theme.theme_is_not_existed'));
     }
 
-    public function getCustomHtml(FormBuilder $formBuilder)
+    public function getCustomHtml()
     {
         if (! config('packages.theme.general.enable_custom_html')) {
             abort(404);
         }
 
-        PageTitle::setTitle(trans('packages/theme::theme.custom_html'));
+        $this->pageTitle(trans('packages/theme::theme.custom_html'));
 
-        Assets::addStylesDirectly([
-            'vendor/core/core/base/libraries/codemirror/lib/codemirror.css',
-            'vendor/core/core/base/libraries/codemirror/addon/hint/show-hint.css',
-            'vendor/core/packages/theme/css/custom-css.css',
-        ])
-            ->addScriptsDirectly([
-                'vendor/core/core/base/libraries/codemirror/lib/codemirror.js',
-                'vendor/core/core/base/libraries/codemirror/lib/htmlmixed.js',
-                'vendor/core/core/base/libraries/codemirror/addon/hint/show-hint.js',
-                'vendor/core/core/base/libraries/codemirror/addon/hint/anyword-hint.js',
-                'vendor/core/core/base/libraries/codemirror/addon/hint/html-hint.js',
-                'vendor/core/packages/theme/js/custom-html.js',
-            ]);
-
-        return $formBuilder->create(CustomHTMLForm::class)->renderForm();
+        return CustomHTMLForm::create()->renderForm();
     }
 
-    public function postCustomHtml(CustomHtmlRequest $request, BaseHttpResponse $response)
+    public function postCustomHtml(CustomHtmlRequest $request)
     {
         if (! config('packages.theme.general.enable_custom_html')) {
             abort(404);
         }
 
-        setting()
-            ->set('custom_header_html', BaseHelper::clean($request->input('header_html') ?: ''))
-            ->set('custom_body_html', BaseHelper::clean($request->input('body_html') ?: ''))
-            ->set('custom_footer_html', BaseHelper::clean($request->input('footer_html') ?: ''))
-            ->save();
+        $data = [];
 
-        return $response->setMessage(trans('packages/theme::theme.update_custom_html_success'));
+        foreach ($request->validated() as $key => $value) {
+            $data[$key] = BaseHelper::clean($value);
+        }
+
+        return $this->performUpdate($data);
+    }
+
+    public function getRobotsTxt()
+    {
+        if (! config('packages.theme.general.enable_robots_txt_editor')) {
+            abort(404);
+        }
+
+        $this->pageTitle(trans('packages/theme::theme.robots_txt_editor'));
+
+        return RobotsTxtEditorForm::create()->renderForm();
+    }
+
+    public function postRobotsTxt(RobotsTxtRequest $request)
+    {
+        if (! config('packages.theme.general.enable_robots_txt_editor')) {
+            abort(404);
+        }
+
+        $path = public_path('robots.txt');
+
+        if (! File::isWritable($path)) {
+            return $this
+                ->httpResponse()
+                ->setError()
+                ->setMessage(trans('packages/theme::theme.robots_txt_not_writable', ['path' => $path]));
+        }
+
+        File::put($path, $request->input('robots_txt_content'));
+
+        if ($request->hasFile('robots_txt_file')) {
+            $request->file('robots_txt_file')->move(public_path(), 'robots.txt');
+        }
+
+        return $this->httpResponse()->withUpdatedSuccessMessage();
     }
 }

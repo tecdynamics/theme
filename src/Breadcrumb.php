@@ -10,10 +10,10 @@ class Breadcrumb
 
     public function enabled(): bool
     {
-        return (bool)theme_option('theme_breadcrumb_enabled', 1) == 1;
+        return (bool) theme_option('theme_breadcrumb_enabled', 1) == 1;
     }
 
-    public function add(string|array|null $label, string|null $url = ''): self
+    public function add(string|array|null $label, ?string $url = ''): self
     {
         if (! $this->enabled()) {
             return $this;
@@ -53,6 +53,6 @@ class Breadcrumb
             return [];
         }
 
-        return $this->crumbs;
+        return collect($this->crumbs)->unique('label')->toArray();
     }
 }

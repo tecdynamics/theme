@@ -9,9 +9,9 @@ class CustomJsRequest extends Request
     public function rules(): array
     {
         return [
-            'header_js' => 'nullable|string',
-            'body_js' => 'nullable|string',
-            'footer_js' => 'nullable|string',
+            'custom_header_js' => 'nullable|string|max:2500',
+            'custom_body_js' => 'nullable|string|max:2500',
+            'custom_footer_js' => 'nullable|string|max:2500',
         ];
     }
 }

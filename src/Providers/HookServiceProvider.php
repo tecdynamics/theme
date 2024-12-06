@@ -2,20 +2,45 @@
 
 namespace Tec\Theme\Providers;
 
+use Tec\Base\Facades\AdminAppearance;
 use Tec\Base\Facades\BaseHelper;
 use Tec\Base\Facades\Html;
+use Tec\Base\Forms\FieldOptions\SelectFieldOption;
+use Tec\Base\Forms\Fields\NumberField;
+use Tec\Base\Forms\Fields\OnOffCheckboxField;
+use Tec\Base\Forms\Fields\RadioField;
+use Tec\Base\Forms\Fields\SelectField;
+use Tec\Base\Forms\Fields\TextField;
+use Tec\Base\Forms\FormAbstract;
+use Tec\Base\Rules\OnOffRule;
+use Tec\Base\Supports\Language;
 use Tec\Base\Supports\ServiceProvider;
+use Tec\Dashboard\Events\RenderingDashboardWidgets;
 use Tec\Dashboard\Supports\DashboardWidgetInstance;
+use Tec\Media\Facades\RvMedia;
 use Tec\Page\Models\Page;
+use Tec\Page\Tables\PageTable;
+use Tec\Setting\Forms\AdminAppearanceSettingForm;
+use Tec\Setting\Forms\GeneralSettingForm;
+use Tec\Setting\Http\Requests\AdminAppearanceRequest;
+use Tec\Setting\Http\Requests\GeneralSettingRequest;
 use Tec\Shortcode\Compilers\Shortcode;
 use Tec\Shortcode\Compilers\ShortcodeCompiler;
+use Tec\Shortcode\Forms\ShortcodeForm;
+use Tec\Support\Http\Requests\Request;
+use Tec\Theme\Events\RenderingThemeOptionSettings;
 use Tec\Theme\Facades\AdminBar;
 use Tec\Theme\Facades\Theme;
 use Tec\Theme\Supports\ThemeSupport;
 use Tec\Theme\Supports\Vimeo;
 use Tec\Theme\Supports\Youtube;
+use Tec\Theme\ThemeOption\ThemeOptionSection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
@@ -23,19 +48,25 @@ class HookServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        add_filter(PAGE_FILTER_PAGE_NAME_IN_ADMIN_LIST, function (string $name, Page $page) {
-            if (BaseHelper::isHomepage($page->getKey())) {
-                $name .= Html::tag('span', ' — ' . trans('packages/page::pages.front_page'), [
-                    'class' => 'additional-page-name',
-                ])->toHtml();
+        PageTable::beforeRendering(function () {
+            add_filter(PAGE_FILTER_PAGE_NAME_IN_ADMIN_LIST, function (string $name, Page $page) {
+                if (BaseHelper::isHomepage($page->getKey())) {
+                    $name .= Html::tag('span', ' — ' . trans('packages/page::pages.front_page'), [
+                        'class' => 'additional-page-name',
+                    ])->toHtml();
+                }
+
+                return $name;
+            }, 10, 2);
+        });
+
+        $this->app['events']->listen(RenderingDashboardWidgets::class, function () {
+            if (! config('packages.theme.general.display_theme_manager_in_admin_panel', true)) {
+                return;
             }
 
-            return $name;
-        }, 10, 2);
-
-        add_filter(DASHBOARD_FILTER_ADMIN_LIST, [$this, 'addStatsWidgets'], 4, 2);
-
-        add_filter(BASE_FILTER_AFTER_SETTING_CONTENT, [$this, 'addSetting'], 39);
+            add_filter(DASHBOARD_FILTER_ADMIN_LIST, [$this, 'addStatsWidgets'], 4, 2);
+        });
 
         add_filter('get_http_exception_view', function (string $defaultView, HttpExceptionInterface $exception) {
             if (view()->exists($view = Theme::getThemeNamespace('views.' . $exception->getStatusCode()))) {
@@ -45,125 +76,155 @@ class HookServiceProvider extends ServiceProvider
             return $defaultView;
         }, 10, 2);
 
-        theme_option()
-            ->setSection([
-                'title' => trans('packages/theme::theme.theme_option_general'),
-                'desc' => trans('packages/theme::theme.theme_option_general_description'),
-                'priority' => 0,
-                'id' => 'opt-text-subsection-general',
-                'subsection' => true,
-                'icon' => 'fa fa-home',
-                'fields' => [
-                    [
-                        'id' => 'site_title',
-                        'type' => 'text',
-                        'label' => trans('core/setting::setting.general.site_title'),
-                        'attributes' => [
-                            'name' => 'site_title',
-                            'value' => null,
-                            'options' => [
-                                'class' => 'form-control',
-                                'placeholder' => trans('core/setting::setting.general.site_title'),
-                                'data-counter' => 255,
+        add_filter('core_email_template_site_logo', function (?string $defaultLogo): string {
+            if (! $defaultLogo && ($logo = theme_option('logo'))) {
+                $defaultLogo = RvMedia::getImageUrl($logo);
+            }
+
+            return $defaultLogo;
+        });
+
+        add_filter('email_template_logo', fn ($logo) => empty($logo) ? theme_option('logo') : $logo);
+        add_filter('email_template_logo_helper_text', function ($helperText) {
+            return trans('packages/theme::theme.email_template_logo_helper_text')
+                . '<br />'
+                . $helperText;
+        });
+        add_filter(
+            'email_template_copyright_text',
+            fn ($copyrightText) => empty($copyrightText) ? theme_option('copyright') : $copyrightText
+        );
+        add_filter('email_template_copyright_helper_text', function ($helperText) {
+            return $helperText;
+        });
+
+        Theme::typography()->renderThemeOptions();
+
+        $this->app['events']->listen(RenderingThemeOptionSettings::class, function () {
+            theme_option()
+                ->setSection(
+                    ThemeOptionSection::make('opt-text-subsection-general')
+                        ->title(trans('packages/theme::theme.theme_option_general'))
+                        ->icon('ti ti-home')
+                        ->priority(0)
+                        ->fields([
+                            [
+                                'id' => 'site_title',
+                                'type' => 'text',
+                                'label' => trans('core/setting::setting.general.site_title'),
+                                'attributes' => [
+                                    'name' => 'site_title',
+                                    'value' => null,
+                                    'options' => [
+                                        'class' => 'form-control',
+                                        'placeholder' => trans('core/setting::setting.general.site_title'),
+                                        'data-counter' => 255,
+                                    ],
+                                ],
                             ],
-                        ],
-                    ],
-                    [
-                        'id' => 'show_site_name',
-                        'section_id' => 'opt-text-subsection-general',
-                        'type' => 'customSelect',
-                        'label' => trans('core/setting::setting.general.show_site_name'),
-                        'attributes' => [
-                            'name' => 'show_site_name',
-                            'list' => [
-                                '0' => __('No'),
-                                '1' => __('Yes'),
+                            [
+                                'id' => 'show_site_name',
+                                'section_id' => 'opt-text-subsection-general',
+                                'type' => 'customSelect',
+                                'label' => trans('core/setting::setting.general.show_site_name'),
+                                'attributes' => [
+                                    'name' => 'show_site_name',
+                                    'list' => [
+                                        '0' => __('No'),
+                                        '1' => __('Yes'),
+                                    ],
+                                    'value' => '0',
+                                ],
                             ],
-                            'value' => '0',
-                        ],
-                    ],
-                    [
-                        'id' => 'seo_title',
-                        'type' => 'text',
-                        'label' => trans('core/setting::setting.general.seo_title'),
-                        'attributes' => [
-                            'name' => 'seo_title',
-                            'value' => null,
-                            'options' => [
-                                'class' => 'form-control',
-                                'placeholder' => trans('core/setting::setting.general.seo_title'),
-                                'data-counter' => 120,
+                            [
+                                'id' => 'seo_title',
+                                'type' => 'text',
+                                'label' => trans('core/setting::setting.general.seo_title'),
+                                'attributes' => [
+                                    'name' => 'seo_title',
+                                    'value' => null,
+                                    'options' => [
+                                        'class' => 'form-control',
+                                        'placeholder' => trans('core/setting::setting.general.seo_title'),
+                                        'data-counter' => 120,
+                                    ],
+                                ],
                             ],
-                        ],
-                    ],
-                    [
-                        'id' => 'seo_description',
-                        'type' => 'textarea',
-                        'label' => trans('core/setting::setting.general.seo_description'),
-                        'attributes' => [
-                            'name' => 'seo_description',
-                            'value' => null,
-                            'options' => [
-                                'class' => 'form-control',
-                                'rows' => 4,
+                            [
+                                'id' => 'seo_description',
+                                'type' => 'textarea',
+                                'label' => trans('core/setting::setting.general.seo_description'),
+                                'attributes' => [
+                                    'name' => 'seo_description',
+                                    'value' => null,
+                                    'options' => [
+                                        'class' => 'form-control',
+                                        'rows' => 4,
+                                    ],
+                                ],
                             ],
-                        ],
-                    ],
-                    [
-                        'id' => 'seo_og_image',
-                        'type' => 'mediaImage',
-                        'label' => trans('packages/theme::theme.theme_option_seo_open_graph_image'),
-                        'attributes' => [
-                            'name' => 'seo_og_image',
-                            'value' => null,
-                        ],
-                    ],
-                    [
-                        'id' => 'theme_breadcrumb_enabled',
-                        'section_id' => 'opt-text-subsection-general',
-                        'type' => 'customSelect',
-                        'label' => trans('packages/theme::theme.breadcrumb_enabled'),
-                        'attributes' => [
-                            'name' => 'theme_breadcrumb_enabled',
-                            'list' => [
-                                '1' => __('Yes'),
-                                '0' => __('No'),
+                            [
+                                'id' => 'seo_og_image',
+                                'type' => 'mediaImage',
+                                'label' => trans('packages/theme::theme.theme_option_seo_open_graph_image'),
+                                'attributes' => [
+                                    'name' => 'seo_og_image',
+                                    'value' => null,
+                                ],
                             ],
-                            'value' => '1',
-                        ],
-                    ],
-                ],
-            ])
-            ->setSection([
-                'title' => trans('packages/theme::theme.theme_option_logo'),
-                'desc' => trans('packages/theme::theme.theme_option_logo'),
-                'priority' => 0,
-                'id' => 'opt-text-subsection-logo',
-                'subsection' => true,
-                'icon' => 'fa fa-image',
-                'fields' => [
-                    [
-                        'id' => 'favicon',
-                        'type' => 'mediaImage',
-                        'label' => trans('packages/theme::theme.theme_option_favicon'),
-                        'attributes' => [
-                            'name' => 'favicon',
-                            'value' => null,
-                            'attributes' => ['allow_thumb' => false],
-                        ],
-                    ],
-                    [
-                        'id' => 'logo',
-                        'type' => 'mediaImage',
-                        'label' => trans('packages/theme::theme.theme_option_logo'),
-                        'attributes' => [
-                            'name' => 'logo',
-                            'value' => null,
-                            'attributes' => ['allow_thumb' => false],
-                        ],
-                    ],
-                ],
-            ]);
+                        ])
+                )
+                ->setSection(
+                    ThemeOptionSection::make('opt-text-subsection-breadcrumb')
+                        ->title(trans('packages/theme::theme.theme_option_breadcrumb'))
+                        ->icon('ti ti-directions')
+                        ->priority(0)
+                        ->fields([
+                            [
+                                'id' => 'theme_breadcrumb_enabled',
+                                'type' => 'customSelect',
+                                'label' => trans('packages/theme::theme.breadcrumb_enabled'),
+                                'priority' => 0,
+                                'attributes' => [
+                                    'name' => 'theme_breadcrumb_enabled',
+                                    'list' => [
+                                        '1' => __('Yes'),
+                                        '0' => __('No'),
+                                    ],
+                                    'value' => '1',
+                                ],
+                            ],
+                        ])
+                )
+                ->setSection(
+                    ThemeOptionSection::make('opt-text-subsection-logo')
+                        ->title(trans('packages/theme::theme.theme_option_logo'))
+                        ->icon('ti ti-photo')
+                        ->priority(0)
+                        ->fields([
+                            [
+                                'id' => 'favicon',
+                                'type' => 'mediaImage',
+                                'label' => trans('packages/theme::theme.theme_option_favicon'),
+                                'attributes' => [
+                                    'name' => 'favicon',
+                                    'value' => null,
+                                    'attributes' => ['allow_thumb' => false],
+                                ],
+                            ],
+                            [
+                                'id' => 'logo',
+                                'type' => 'mediaImage',
+                                'label' => trans('packages/theme::theme.theme_option_logo'),
+                                'attributes' => [
+                                    'name' => 'logo',
+                                    'value' => null,
+                                    'attributes' => ['allow_thumb' => false],
+                                ],
+                            ],
+                        ])
+                );
+        });
 
         add_shortcode('media', 'Media', 'Media', function (Shortcode $shortcode) {
             $url = $shortcode->url;
@@ -178,12 +239,8 @@ class HookServiceProvider extends ServiceProvider
                 return null;
             }
 
-            $iframe = null;
-
             $data = [
-                'class' => 'embed-responsive-item',
-                'height' => 315,
-                'width' => 420,
+                'url' => $url,
             ];
 
             if ($shortcode->width) {
@@ -194,36 +251,76 @@ class HookServiceProvider extends ServiceProvider
                 $data['height'] = $shortcode->height;
             }
 
+            $type = null;
+
             if (Youtube::isYoutubeURL($url)) {
-                $data['allowfullscreen'] = true;
-                $data['frameborder'] = 0;
+                $data['url'] = Youtube::getYoutubeVideoEmbedURL($url);
 
-                $data['src'] = Youtube::getYoutubeVideoEmbedURL($url);
-
-                $iframe = Html::tag('iframe', '', $data)->toHtml();
+                $type = 'youtube';
             } elseif (Vimeo::isVimeoURL($url)) {
                 $videoId = Vimeo::getVimeoID($url);
                 if ($videoId) {
-                    $data['allow'] = 'autoplay; fullscreen; picture-in-picture';
-                    $data['src'] = 'https://player.vimeo.com/video/' . $videoId;
+                    $data['url'] = 'https://player.vimeo.com/video/' . $videoId;
 
-                    $iframe = Html::tag('iframe', '', $data)->toHtml();
+                    $type = 'vimeo';
                 }
+            } elseif (preg_match(
+                '/^.*https:\/\/(?:m|www|vm)?\.?tiktok\.com\/((?:.*\b(?:(?:usr|v|embed|user|video)\/|\?shareId=|\&item_id=)(\d+))|\w+)/',
+                $url
+            )) {
+                $type = 'tiktok';
+
+                $data['url'] = $url;
+                $data['video_id'] = Str::afterLast($url, 'video/');
+
+                Theme::asset()->container('footer')->add(
+                    'tiktok-embed',
+                    'https://www.tiktok.com/embed.js',
+                    attributes: ['async' => true]
+                );
+            } elseif (preg_match('/^.*https:\/\/twitter\.com\/(?:#!\/)?(\w+)\/status(es)?\/(\d+)/', $url)) {
+                $data['url'] = $url;
+
+                $type = 'twitter';
+
+                Theme::asset()->container('footer')->add(
+                    'twitter-embed',
+                    'https://platform.twitter.com/widgets.js',
+                    attributes: ['async' => true, 'charset' => 'utf-8']
+                );
+            } elseif (in_array(Str::lower(File::extension($url)), ['mp4', 'webm', 'ogg'])) {
+                $data['width'] = $shortcode->width ?: '100%';
+                $data['height'] = $shortcode->height ?: 400;
+                $data['extension'] = File::extension($url) ?: 'mp4';
+                $data['url'] = $url;
+
+                $type = 'video';
             }
 
-            if ($iframe) {
-                return Html::tag('div', $iframe, ['class' => 'embed-responsive embed-responsive-16by9 mb30'])
-                    ->toHtml();
-            }
-
-            return null;
+            return view('packages/theme::shortcodes.media', ['type' => $type, 'data' => $data])->render();
         });
+
+        shortcode()->setPreviewImage('media', asset('vendor/core/packages/theme/images/ui-blocks/media.jpg'));
 
         shortcode()->setAdminConfig('media', function (array $attributes) {
-            return view('packages/theme::shortcodes.media-admin-config', compact('attributes'))->render();
+            return ShortcodeForm::createFromArray($attributes)
+                ->add('url', TextField::class, [
+                    'label' => __('Media URL'),
+                    'attr' => [
+                        'placeholder' => 'YouTube, Vimeo, TikTok, ...',
+                    ],
+                ])
+                ->add('width', NumberField::class, [
+                    'label' => __('Width'),
+                    'default_value' => 420,
+                ])
+                ->add('height', NumberField::class, [
+                    'label' => __('Height'),
+                    'default_value' => 315,
+                ]);
         });
 
-        add_filter(THEME_FRONT_HEADER, function (string|null $html): string|null {
+        add_filter(THEME_FRONT_HEADER, function (?string $html): ?string {
             $file = Theme::getStyleIntegrationPath();
             if ($this->app['files']->exists($file)) {
                 $html .= PHP_EOL . Html::style(Theme::asset()->url('css/style.integration.css?v=' . filectime($file)));
@@ -234,31 +331,49 @@ class HookServiceProvider extends ServiceProvider
 
         if (! BaseHelper::hasDemoModeEnabled()) {
             if (config('packages.theme.general.enable_custom_html_shortcode')) {
-                add_shortcode('custom-html', __('Custom HTML'), __('Add custom HTML content'), function (Shortcode $shortcode) {
-                    return html_entity_decode($shortcode->getContent());
-                });
+                add_shortcode(
+                    'custom-html',
+                    __('Custom HTML'),
+                    __('Add custom HTML content'),
+                    function (Shortcode $shortcode) {
+                        return html_entity_decode($shortcode->getContent());
+                    }
+                );
 
-                shortcode()->setAdminConfig('custom-html', function (array $attributes, string|null $content) {
-                    return view('packages/theme::shortcodes.custom-html-admin-config', compact('attributes', 'content'))
-                        ->render();
+                shortcode()->setPreviewImage(
+                    'custom-html',
+                    asset('vendor/core/packages/shortcode/images/placeholder-code.jpg')
+                );
+
+                shortcode()->setAdminConfig('custom-html', function (array $attributes, ?string $content) {
+                    return ShortcodeForm::createFromArray($attributes)
+                        ->add('content', 'textarea', [
+                            'label' => __('Content'),
+                            'attr' => [
+                                'placeholder' => __('HTML code'),
+                                'rows' => 3,
+                                'data-shortcode-attribute' => 'content',
+                            ],
+                            'value' => $content,
+                        ]);
                 });
             }
 
             if (config('packages.theme.general.enable_custom_js')) {
                 if (setting('custom_header_js')) {
-                    add_filter(THEME_FRONT_HEADER, function (string|null $html): string {
+                    add_filter(THEME_FRONT_HEADER, function (?string $html): string {
                         return $html . ThemeSupport::getCustomJS('header');
                     }, 15);
                 }
 
                 if (setting('custom_body_js')) {
-                    add_filter(THEME_FRONT_BODY, function (string|null $html): string {
+                    add_filter(THEME_FRONT_BODY, function (?string $html): string {
                         return $html . ThemeSupport::getCustomJS('body');
                     }, 15);
                 }
 
                 if (setting('custom_footer_js')) {
-                    add_filter(THEME_FRONT_FOOTER, function (string|null $html): string {
+                    add_filter(THEME_FRONT_FOOTER, function (?string $html): string {
                         return $html . ThemeSupport::getCustomJS('footer');
                     }, 15);
                 }
@@ -266,28 +381,28 @@ class HookServiceProvider extends ServiceProvider
 
             if (config('packages.theme.general.enable_custom_html')) {
                 if (setting('custom_header_html')) {
-                    add_filter(THEME_FRONT_HEADER, function (string|null $html): string {
+                    add_filter(THEME_FRONT_HEADER, function (?string $html): string {
                         return $html . ThemeSupport::getCustomHtml('header');
                     }, 16);
                 }
 
                 if (setting('custom_body_html')) {
-                    add_filter(THEME_FRONT_BODY, function (string|null $html): string {
+                    add_filter(THEME_FRONT_BODY, function (?string $html): string {
                         return $html . ThemeSupport::getCustomHtml('body');
                     }, 16);
                 }
 
                 if (setting('custom_footer_html')) {
-                    add_filter(THEME_FRONT_FOOTER, function (string|null $html): string {
+                    add_filter(THEME_FRONT_FOOTER, function (?string $html): string {
                         return $html . ThemeSupport::getCustomHtml('footer');
                     }, 16);
                 }
             }
         }
 
-        add_filter(THEME_FRONT_FOOTER, function (string|null $html): string|null {
+        add_filter(THEME_FRONT_FOOTER, function (?string $html): ?string {
             try {
-                if (! Auth::guard()->check() || ! AdminBar::isDisplay() || ! (int)setting('show_admin_bar', 1)) {
+                if (! Auth::guard()->check() || ! AdminBar::isDisplay() || ! (int) setting('show_admin_bar', 1)) {
                     return $html;
                 }
 
@@ -299,7 +414,7 @@ class HookServiceProvider extends ServiceProvider
 
         add_filter(
             'shortcode_content_compiled',
-            function (string|null $html, string $name, $callback, ShortcodeCompiler $compiler) {
+            function (?string $html, string $name, $callback, ShortcodeCompiler $compiler) {
                 $editLink = $compiler->getEditLink();
 
                 if (! $editLink || ! setting('show_theme_guideline_link', false)) {
@@ -329,18 +444,90 @@ class HookServiceProvider extends ServiceProvider
             }
         }, 15);
 
-        add_filter('cms_settings_validation_rules', [$this, 'addSettingRules'], 15);
-    }
+        GeneralSettingForm::extend(function (GeneralSettingForm $form) {
+            $availableLocales = Language::getAvailableLocales();
 
-    public function addSettingRules(array $rules): array
-    {
-        return array_merge($rules, [
-            'enable_cache_site_map' => 'nullable|in:0,1',
-            'cache_time_site_map' => 'nullable|integer|min:0',
-            'show_admin_bar' => 'nullable|in:0,1',
-            'redirect_404_to_homepage' => 'nullable|in:0,1',
-            'show_theme_guideline_link' => 'nullable|in:0,1',
-        ]);
+            $form
+                ->when(! empty($availableLocales), function (FormAbstract $form) use ($availableLocales) {
+                    $defaultLocale = setting('locale', App::getLocale());
+
+                    if (
+                        BaseHelper::hasDemoModeEnabled()
+                        && session('site-locale')
+                        && array_key_exists(session('site-locale'), $availableLocales)
+                    ) {
+                        $defaultLocale = session('site-locale');
+                    }
+
+                    $form
+                        ->addAfter(
+                            'time_zone',
+                            'locale',
+                            SelectField::class,
+                            SelectFieldOption::make()
+                                ->label(trans('core/setting::setting.general.locale'))
+                                ->choices(collect($availableLocales)
+                                    ->pluck('name', 'locale')
+                                    ->map(fn ($item, $key) => $item . ' - ' . $key)
+                                    ->all())
+                                ->selected($defaultLocale)
+                                ->searchable()
+                                ->toArray()
+                        );
+                })
+                ->addAfter('time_zone', 'locale_direction', RadioField::class, [
+                    'label' => trans('core/setting::setting.general.locale_direction'),
+                    'value' => setting('locale_direction', 'ltr'),
+                    'values' => [
+                        'ltr' => trans('core/setting::setting.locale_direction_ltr'),
+                        'rtl' => trans('core/setting::setting.locale_direction_rtl'),
+                    ],
+                ])
+                ->addAfter('enable_send_error_reporting_via_email', 'redirect_404_to_homepage', OnOffCheckboxField::class, [
+                    'label' => trans('core/setting::setting.general.redirect_404_to_homepage'),
+                    'value' => setting('redirect_404_to_homepage', false),
+                    'wrapper' => [
+                        'class' => 'mb-0',
+                    ],
+                ]);
+        }, 110);
+
+        add_filter('core_request_rules', function ($rules, Request $request) {
+            if ($request instanceof GeneralSettingRequest) {
+                $rules = [
+                    ...$rules,
+                    'locale' => ['sometimes', Rule::in(array_keys(Language::getAvailableLocales()))],
+                    'locale_direction' => ['sometimes', 'in:ltr,rtl'],
+                    'redirect_404_to_homepage' => [new OnOffRule()],
+                ];
+            }
+
+            return $rules;
+        }, 110, 2);
+
+        AdminAppearanceSettingForm::extend(function (AdminAppearanceSettingForm $form) {
+            $form
+                ->addAfter(AdminAppearance::getSettingKey('show_menu_item_icon'), 'show_admin_bar', OnOffCheckboxField::class, [
+                    'label' => trans('core/setting::setting.admin_appearance.form.show_admin_bar'),
+                    'value' => setting('show_admin_bar', true),
+                ])
+                ->addAfter('show_admin_bar', 'show_theme_guideline_link', OnOffCheckboxField::class, [
+                    'label' => trans('core/setting::setting.admin_appearance.form.show_guidelines'),
+                    'value' => setting('show_theme_guideline_link', false),
+                ]);
+        }, 110);
+
+        add_filter('core_request_rules', function ($rules, Request $request) {
+            if ($request instanceof AdminAppearanceRequest) {
+                $rules = [
+                    ...$rules,
+                    'show_admin_bar' => $onOffRule = new OnOffRule(),
+                    'show_theme_guideline_link' => $onOffRule,
+                ];
+            }
+
+            return $rules;
+        }, 110, 2);
     }
 
     public function addStatsWidgets(array $widgets, Collection $widgetSettings): array
@@ -350,17 +537,13 @@ class HookServiceProvider extends ServiceProvider
         return (new DashboardWidgetInstance())
             ->setType('stats')
             ->setPermission('theme.index')
-            ->setTitle(trans('packages/theme::theme.theme'))
+            ->setTitle($themes === 1 ? trans('packages/theme::theme.theme') : trans('packages/theme::theme.themes'))
             ->setKey('widget_total_themes')
-            ->setIcon('fa fa-paint-brush')
-            ->setColor('#e7505a')
+            ->setIcon('ti ti-palette')
+            ->setColor('pink')
             ->setStatsTotal($themes)
             ->setRoute(route('theme.index'))
+            ->setColumn('col-12 col-md-6 col-lg-3')
             ->init($widgets, $widgetSettings);
-    }
-
-    public function addSetting(string|null $data = null): string
-    {
-        return $data . view('packages/theme::setting')->render();
     }
 }

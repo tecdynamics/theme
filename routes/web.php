@@ -1,29 +1,32 @@
 <?php
 
-use Tec\Base\Facades\BaseHelper;
+use Tec\Base\Facades\AdminHelper;
 use Illuminate\Support\Facades\Route;
 
-Route::group(['namespace' => 'Tec\Theme\Http\Controllers', 'middleware' => ['web', 'core']], function () {
-    Route::group(['prefix' => BaseHelper::getAdminPrefix(), 'middleware' => 'auth'], function () {
-        Route::group(['prefix' => 'theme'], function () {
-            Route::get('all', [
-                'as' => 'theme.index',
-                'uses' => 'ThemeController@index',
-            ]);
+Route::group(['namespace' => 'Tec\Theme\Http\Controllers'], function () {
+    AdminHelper::registerRoutes(function () {
+        if (config('packages.theme.general.display_theme_manager_in_admin_panel', true)) {
+            Route::group(['prefix' => 'theme'], function () {
+                Route::get('all', [
+                    'as' => 'theme.index',
+                    'uses' => 'ThemeController@index',
+                ]);
 
-            Route::post('active', [
-                'as' => 'theme.active',
-                'uses' => 'ThemeController@postActivateTheme',
-                'permission' => 'theme.index',
-            ]);
+                Route::post('active', [
+                    'as' => 'theme.active',
+                    'uses' => 'ThemeController@postActivateTheme',
+                    'middleware' => 'preventDemo',
+                    'permission' => 'theme.index',
+                ]);
 
-            Route::post('remove', [
-                'as' => 'theme.remove',
-                'uses' => 'ThemeController@postRemoveTheme',
-                'middleware' => 'preventDemo',
-                'permission' => 'theme.index',
-            ]);
-        });
+                Route::post('remove', [
+                    'as' => 'theme.remove',
+                    'uses' => 'ThemeController@postRemoveTheme',
+                    'middleware' => 'preventDemo',
+                    'permission' => 'theme.index',
+                ]);
+            });
+        }
 
         Route::group(['prefix' => 'theme/options'], function () {
             Route::get('', [
@@ -78,6 +81,35 @@ Route::group(['namespace' => 'Tec\Theme\Http\Controllers', 'middleware' => ['web
                 'permission' => 'theme.custom-html',
                 'middleware' => 'preventDemo',
             ]);
+        });
+
+        Route::group(['prefix' => 'theme/robots-txt'], function () {
+            Route::get('', [
+                'as' => 'theme.robots-txt',
+                'uses' => 'ThemeController@getRobotsTxt',
+            ]);
+
+            Route::post('', [
+                'as' => 'theme.robots-txt.post',
+                'uses' => 'ThemeController@postRobotsTxt',
+                'permission' => 'theme.robots-txt',
+                'middleware' => 'preventDemo',
+            ]);
+        });
+
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::prefix('website-tracking')->group(function () {
+                Route::get('/', [
+                    'as' => 'website-tracking',
+                    'uses' => 'WebsiteTrackingSettingController@edit',
+                ]);
+
+                Route::put('/', [
+                    'as' => 'website-tracking.update',
+                    'uses' => 'WebsiteTrackingSettingController@update',
+                    'permission' => 'settings.website-tracking',
+                ]);
+            });
         });
     });
 });

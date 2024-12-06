@@ -1,10 +1,7 @@
 {!! SeoHelper::render() !!}
 
 @if ($favicon = theme_option('favicon'))
-    <link
-        href="{{ RvMedia::getImageUrl($favicon) }}"
-        rel="shortcut icon"
-    >
+    {{ Html::favicon(RvMedia::getImageUrl($favicon)) }}
 @endif
 
 @if (Theme::has('headerMeta'))
@@ -22,6 +19,9 @@
 }
 </script>
 
+{!! Theme::typography()->renderCssVariables() !!}
+
+{!! Theme::asset()->container('before_header')->styles() !!}
 {!! Theme::asset()->styles() !!}
 {!! Theme::asset()->container('after_header')->styles() !!}
 {!! Theme::asset()->container('header')->scripts() !!}
@@ -29,5 +29,5 @@
 {!! apply_filters(THEME_FRONT_HEADER, null) !!}
 
 <script>
-    window.siteUrl = "{{ route('public.index') }}";
+    window.siteUrl = "{{ rescue(fn() => BaseHelper::getHomepageUrl()) }}";
 </script>

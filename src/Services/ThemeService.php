@@ -11,9 +11,11 @@ use Tec\Theme\Events\ThemeRemoveEvent;
 use Tec\Theme\Facades\Theme;
 use Tec\Theme\Facades\ThemeOption;
 use Tec\Widget\Models\Widget;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 class ThemeService
 {
@@ -39,8 +41,18 @@ class ThemeService
             ];
         }
 
+        $config = $this->getThemeConfig($theme);
+        $inheritTheme = Arr::get($config, 'inherit');
+
         try {
             $content = BaseHelper::getFileData($this->getPath($theme, 'theme.json'));
+
+            if (! Theme::exists($inheritTheme)) {
+                return [
+                    'error' => true,
+                    'message' => trans('packages/theme::theme.theme_inherit_not_found', ['name' => $inheritTheme]),
+                ];
+            }
 
             if (! empty($content)) {
                 $requiredPlugins = Arr::get($content, 'required_plugins', []);
@@ -55,6 +67,11 @@ class ThemeService
                 'error' => true,
                 'message' => $exception->getMessage(),
             ];
+        }
+
+        if (! empty($inheritTheme)) {
+            $this->copyThemeOptions($theme);
+            $this->copyThemeWidgets($theme);
         }
 
         Theme::setThemeName($theme);
@@ -75,6 +92,66 @@ class ThemeService
             'error' => false,
             'message' => trans('packages/theme::theme.active_success', ['name' => $theme]),
         ];
+    }
+
+    public function copyThemeOptions(string $theme): void
+    {
+        $fromTheme = setting('theme');
+
+        if ($fromTheme === $theme) {
+            return;
+        }
+
+        $themeOptions = ThemeOption::getOptions();
+
+        $themeOptions = collect($themeOptions)
+            ->filter(
+                fn (mixed $value, string $key) => Str::startsWith($key, 'theme-' . $fromTheme . '-')
+            )
+            ->toArray();
+
+        $copiedThemeOptions = [];
+
+        $now = Carbon::now();
+
+        foreach ($themeOptions as $key => $option) {
+            $key = str_replace('theme-' . $fromTheme . '-', 'theme-' . $theme . '-', $key);
+
+            $copiedThemeOptions[] = [
+                'key' => $key,
+                'value' => $option,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        if (! empty($copiedThemeOptions)) {
+            Setting::query()
+                ->insertOrIgnore($copiedThemeOptions);
+        }
+    }
+
+    public function copyThemeWidgets(string $theme): void
+    {
+        $fromTheme = setting('theme');
+
+        if ($fromTheme === $theme) {
+            return;
+        }
+
+        $copiedWidgets = Widget::query()
+            ->where('theme', $fromTheme)
+            ->get()
+            ->toArray();
+
+        foreach ($copiedWidgets as $key => $widget) {
+            $copiedWidgets[$key]['theme'] = $theme;
+            $copiedWidgets[$key]['data'] = json_encode($widget['data']);
+            unset($copiedWidgets[$key]['id']);
+        }
+
+        Widget::query()
+            ->insertOrIgnore($copiedWidgets);
     }
 
     protected function validate(string $theme): array
@@ -101,12 +178,12 @@ class ThemeService
         ];
     }
 
-    protected function getPath(string $theme, string|null $path = null): string
+    protected function getPath(string $theme, ?string $path = null): string
     {
         return rtrim(theme_path(), '/') . '/' . rtrim(ltrim(strtolower($theme), '/'), '/') . '/' . $path;
     }
 
-    public function publishAssets(string|null $theme = null): array
+    public function publishAssets(?string $theme = null): array
     {
         if ($theme) {
             $themes = [$theme];
@@ -140,7 +217,12 @@ class ThemeService
             }
 
             $this->files->copyDirectory($resourcePath, $publishPath);
-            $this->files->copy($this->getPath($theme, 'screenshot.png'), $publishPath . '/screenshot.png');
+
+            $screenshot = $this->getPath($theme, 'screenshot.png');
+
+            if ($this->files->exists($screenshot)) {
+                $this->files->copy($screenshot, $publishPath . '/screenshot.png');
+            }
         }
 
         if (! count($themes)) {
@@ -164,10 +246,17 @@ class ThemeService
             return $validate;
         }
 
-        if (Theme::getThemeName() == $theme) {
+        if (Theme::getThemeName() === $theme) {
             return [
                 'error' => true,
                 'message' => trans('packages/theme::theme.cannot_remove_theme', ['name' => $theme]),
+            ];
+        }
+
+        if (Theme::getInheritTheme() === $theme) {
+            return [
+                'error' => true,
+                'message' => trans('packages/theme::theme.cannot_remove_inherit_theme', ['name' => $theme]),
             ];
         }
 
@@ -204,5 +293,12 @@ class ThemeService
             'error' => false,
             'message' => trans('packages/theme::theme.removed_assets', ['name' => $theme]),
         ];
+    }
+
+    public function getThemeConfig(string $theme): array
+    {
+        $configFile = $this->getPath($theme, 'config.php');
+
+        return $this->files->exists($configFile) ? $this->files->getRequire($configFile) : [];
     }
 }

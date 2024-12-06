@@ -2,9 +2,11 @@
 
 namespace Tec\Theme\Providers;
 
+use Tec\Base\Events\FormRendering;
 use Tec\Base\Events\SeederPrepared;
 use Tec\Base\Events\SystemUpdateDBMigrated;
 use Tec\Base\Events\SystemUpdatePublished;
+use Tec\Theme\Listeners\AddFormJsValidation;
 use Tec\Theme\Listeners\CoreUpdateThemeDB;
 use Tec\Theme\Listeners\PublishThemeAssets;
 use Tec\Theme\Listeners\SetDefaultTheme;
@@ -21,6 +23,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         SeederPrepared::class => [
             SetDefaultTheme::class,
+        ],
+        FormRendering::class => [
+            AddFormJsValidation::class,
         ],
     ];
 }

@@ -2,6 +2,7 @@
 
 namespace Tec\Theme\Supports;
 
+use Tec\Theme\Events\RenderingAdminBar;
 use Illuminate\Support\Facades\Auth;
 
 class AdminBar
@@ -50,6 +51,13 @@ class AdminBar
         return $this->noGroupLinks;
     }
 
+    public function setLinksNoGroup(array $links): self
+    {
+        $this->noGroupLinks = $links;
+
+        return $this;
+    }
+
     public function registerGroup(string $slug, string $title, string $link = 'javascript:;'): self
     {
         if (isset($this->groups[$slug])) {
@@ -94,7 +102,9 @@ class AdminBar
 
         $this->registerLink(trans('core/base::layouts.dashboard'), route('dashboard.index'), 'appearance', 'dashboard.index');
         $this->registerLink(trans('core/acl::users.users'), route('users.create'), 'add-new', 'users.create');
-        $this->registerLink(trans('core/setting::setting.title'), route('settings.options'), 'appearance', 'settings.options');
+        $this->registerLink(trans('core/setting::setting.title'), route('settings.index'), 'appearance', 'settings.options');
+
+        RenderingAdminBar::dispatch();
 
         foreach ($this->groups as $key => $group) {
             if (! isset($group['items'])) {
