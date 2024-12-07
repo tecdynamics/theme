@@ -15,15 +15,13 @@ Route::group(['namespace' => 'Tec\Theme\Http\Controllers'], function () {
                 Route::post('active', [
                     'as' => 'theme.active',
                     'uses' => 'ThemeController@postActivateTheme',
-                    'middleware' => 'preventDemo',
-                    'permission' => 'theme.index',
+                  'permission' => 'theme.index',
                 ]);
 
                 Route::post('remove', [
                     'as' => 'theme.remove',
                     'uses' => 'ThemeController@postRemoveTheme',
-                    'middleware' => 'preventDemo',
-                    'permission' => 'theme.index',
+               'permission' => 'theme.index',
                 ]);
             });
         }
@@ -50,8 +48,7 @@ Route::group(['namespace' => 'Tec\Theme\Http\Controllers'], function () {
             Route::post('', [
                 'as' => 'theme.custom-css.post',
                 'uses' => 'ThemeController@postCustomCss',
-                'permission' => 'theme.custom-css',
-                'middleware' => 'preventDemo',
+                'permission' => 'theme.custom-css'
             ]);
         });
 
@@ -64,8 +61,7 @@ Route::group(['namespace' => 'Tec\Theme\Http\Controllers'], function () {
             Route::post('', [
                 'as' => 'theme.custom-js.post',
                 'uses' => 'ThemeController@postCustomJs',
-                'permission' => 'theme.custom-js',
-                'middleware' => 'preventDemo',
+                'permission' => 'theme.custom-js'
             ]);
         });
 
@@ -78,8 +74,7 @@ Route::group(['namespace' => 'Tec\Theme\Http\Controllers'], function () {
             Route::post('', [
                 'as' => 'theme.custom-html.post',
                 'uses' => 'ThemeController@postCustomHtml',
-                'permission' => 'theme.custom-html',
-                'middleware' => 'preventDemo',
+                'permission' => 'theme.custom-html'
             ]);
         });
 
@@ -92,8 +87,7 @@ Route::group(['namespace' => 'Tec\Theme\Http\Controllers'], function () {
             Route::post('', [
                 'as' => 'theme.robots-txt.post',
                 'uses' => 'ThemeController@postRobotsTxt',
-                'permission' => 'theme.robots-txt',
-                'middleware' => 'preventDemo',
+                'permission' => 'theme.robots-txt'
             ]);
         });
 
