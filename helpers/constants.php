@@ -30,3 +30,6 @@ if (! defined('RENDERING_THEME_OPTIONS_PAGE')) {
 	 if (!defined('MAIN_SEARCH_INPUT')) {
 			define('MAIN_SEARCH_INPUT', 'main_search_input');
 	 }
+	 if (!defined('RENDERING_FILTER_PUBLIC_THEME_SLUG_PAGE')) {
+			define('RENDERING_FILTER_PUBLIC_THEME_SLUG_PAGE', 'rendering-public-theme-slug-page');
+	 }

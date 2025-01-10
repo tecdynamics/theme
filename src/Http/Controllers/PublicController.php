@@ -54,9 +54,13 @@ class PublicController extends BaseController
 
         $slug = SlugHelper::getSlug($key, $prefix);
 
-        if (! $slug) {
-            abort(404);
-        }
+			 if (! $slug) {
+					$slugData = apply_filters(RENDERING_FILTER_PUBLIC_THEME_SLUG_PAGE, null ,$key, $prefix);
+					if(!empty($slugData)){
+						 return $slugData;
+					}
+					abort(404);
+			 }
 
         if (
             defined('PAGE_MODULE_SCREEN_NAME') &&
