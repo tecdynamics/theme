@@ -49,6 +49,7 @@ class Typography
      */
     public function registerFontFamilies(array $fontFamilies): static
     {
+
         foreach ($fontFamilies as $fontFamily) {
             $this->registerFontFamily($fontFamily);
         }
@@ -98,52 +99,32 @@ class Typography
         return $this->fontSizes;
     }
 
-    public function renderCssVariables(): string
-    {
-        if (empty($this->fontFamilies)) {
-            $fontFamily = new TypographyItem('primary', __('Primary'), theme_option('primary_font', 'Inter'));
-
-            $this->fontFamilies[$fontFamily->getName()] = $fontFamily;
-        }
-
-        $fontFamilies = $this->getFontFamilies();
-
-        $fontFaces = '';
-        $styles = '<style>:root{';
-
-        $renderedFonts = [];
-
-        foreach ($fontFamilies as $fontFamily) {
-            $value = theme_option("tp_{$fontFamily->getName()}_font");
-
-            if (! $value) {
-                $value = theme_option("{$fontFamily->getName()}_font");
-            }
-
-            if (! $value) {
-                $value = $fontFamily->getDefault();
-            }
-
-            if (in_array($value, $renderedFonts)) {
-                continue;
-            }
-
-            $fontWeights = $fontFamily->getFontWeights() ?: ['300', '400', '500', '600', '700'];
-
-            $fontFaces .= BaseHelper::googleFonts('https://fonts.googleapis.com/' . sprintf(
-                'css2?family=%s:wght@%s&display=swap',
-                urlencode($value),
-                implode(';', $fontWeights)
-            ));
-
-            $styles .= sprintf(
-                '--%s-font: "%s", sans-serif;',
-                $fontFamily->getName(),
-                $value
-            );
-
-            $renderedFonts[] = $value;
-        }
+    public function renderCssVariables(): string {
+			 if (empty($this->fontFamilies)) {
+					$fontFamily = new TypographyItem('primary', __('Primary'), theme_option('primary_font', 'Inter'));
+					$this->fontFamilies[$fontFamily->getName()] = $fontFamily;
+			 }
+			 $fontFamilies = $this->getFontFamilies();
+			 $fontFaces = '';
+			 $styles = '<style>:root{';
+			 $renderedFonts = [];
+			 [$fontFamilies,$fontFaces] =apply_filters('Render_Css_Variables',[$fontFamilies,$fontFaces]);
+			 foreach ($fontFamilies as $fontFamily) {
+					$value = theme_option("tp_{$fontFamily->getName()}_font");
+					if (!$value) {
+						 $value = theme_option("{$fontFamily->getName()}_font");
+					}
+					if (!$value) {
+						 $value = $fontFamily->getDefault();
+					}
+					if (in_array($value, $renderedFonts)) {
+						 continue;
+					}
+					$fontWeights = $fontFamily->getFontWeights() ?: ['300', '400', '500', '600', '700'];
+					$fontFaces .= BaseHelper::googleFonts('https://fonts.googleapis.com/' . sprintf('css2?family=%s:wght@%s&display=swap', urlencode($value), implode(';', $fontWeights)));
+					$styles .= sprintf('--%s-font: "%s", sans-serif;', $fontFamily->getName(), $value);
+					$renderedFonts[] = $value;
+			 }
 
         $fontSizes = $this->getFontSizes();
 
